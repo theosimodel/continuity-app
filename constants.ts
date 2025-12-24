@@ -1,0 +1,65 @@
+
+import { Comic } from './types';
+
+export const INITIAL_COMICS: Comic[] = [
+  {
+    id: '1',
+    title: 'Watchmen',
+    writer: 'Alan Moore',
+    artist: 'Dave Gibbons',
+    publisher: 'DC Comics',
+    year: 1986,
+    description: 'In a world where the mere presence of American superheroes changed history, the US won the Vietnam War, Nixon is still president, and the Cold War is in full effect.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/0930289234-L.jpg',
+  },
+  {
+    id: '2',
+    title: 'Saga',
+    writer: 'Brian K. Vaughan',
+    artist: 'Fiona Staples',
+    publisher: 'Image Comics',
+    year: 2012,
+    description: 'The story of Alana and Marko, two soldiers from opposite sides of a never-ending galactic war, who fall in love and risk everything to bring a new life into a dangerous old universe.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/1607066017-L.jpg',
+  },
+  {
+    id: '3',
+    title: 'The Sandman',
+    writer: 'Neil Gaiman',
+    artist: 'Sam Kieth',
+    publisher: 'DC Vertigo',
+    year: 1989,
+    description: 'The story of Morpheus, the King of Dreams, and his attempts to rebuild his kingdom after being held prisoner for 70 years.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/1401225756-L.jpg',
+  },
+  {
+    id: '4',
+    title: 'Maus',
+    writer: 'Art Spiegelman',
+    artist: 'Art Spiegelman',
+    publisher: 'Pantheon Books',
+    year: 1980,
+    description: 'A haunting and innovative graphic novel that uses animals to tell the story of the author\'s father\'s experiences during the Holocaust.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/0394747232-L.jpg',
+  },
+  {
+    id: '5',
+    title: 'Batman: The Dark Knight Returns',
+    writer: 'Frank Miller',
+    artist: 'Frank Miller',
+    publisher: 'DC Comics',
+    year: 1986,
+    description: 'An aged Bruce Wayne comes out of retirement to clean up the streets of Gotham in a gritty, dystopian future.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/1563893428-L.jpg',
+  },
+  {
+    id: '6',
+    title: 'Monstress',
+    writer: 'Marjorie Liu',
+    artist: 'Sana Takeda',
+    publisher: 'Image Comics',
+    year: 2015,
+    description: 'Set in an alternate matriarchal Asia, Monstress tells the story of a teenage girl who is struggling to survive the trauma of war.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/1632157098-L.jpg',
+  }
+];

@@ -1,0 +1,7 @@
+{
+  "name": "Continuity - The Social Network for Comic Lovers",
+  "description": "A Letterboxd-style platform for tracking, reviewing, and discovering comics and graphic novels. Log your reading progress, rate your favorites, and explore the multiverse of sequential art.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
