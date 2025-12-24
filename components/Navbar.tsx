@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, User, List, BookOpen, LayoutGrid, PlusCircle, Bookmark } from 'lucide-react';
+import { Search, User, BookOpen, LayoutGrid, Bookmark } from 'lucide-react';
 
 interface NavbarProps {
   onNavigate: (path: string) => void;
@@ -44,18 +44,11 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage }) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <button 
+          <button
             className="p-2 text-[#B3B8C2] hover:text-[#4FD1C5] transition-colors"
             onClick={() => onNavigate('search')}
           >
             <Search size={22} />
-          </button>
-          <button
-            className="bg-[#4FD1C5] hover:bg-[#38B2AC] text-black text-[10px] font-bold px-4 py-2 rounded flex items-center gap-2 transition-all transform active:scale-95 tracking-widest"
-            onClick={() => onNavigate('search')}
-          >
-            <PlusCircle size={16} />
-            ADD TO CONTINUITY
           </button>
         </div>
       </div>

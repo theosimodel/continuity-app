@@ -108,7 +108,7 @@ const Home: React.FC<{
         {isLoadingRecs ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="animate-spin text-[#4FD1C5]" size={40} />
-            <p className="text-[#7C828D] text-sm animate-pulse">Consulting the Grand Archivist...</p>
+            <p className="text-[#7C828D] text-sm animate-pulse">Preparing your Picks…</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-6">
@@ -297,6 +297,14 @@ const ComicDetail: React.FC<{
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
                 />
+                {!comic.readStates?.length && (
+                  <button
+                    onClick={() => onToggleReadState(comic, 'read')}
+                    className="w-full bg-[#1E232B] hover:bg-[#2A303C] text-white text-sm font-medium py-3 rounded-lg border border-[#2A303C] transition-all"
+                  >
+                    Add this to my Continuity
+                  </button>
+                )}
              </div>
           </div>
         </div>
