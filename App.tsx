@@ -5,14 +5,14 @@ import Navbar from './components/Navbar';
 import ComicCard from './components/ComicCard';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState } from './types';
-import { getComicRecommendations, searchComicsWithGrounding } from './services/geminiService';
+import { getComicRecommendations } from './services/geminiService';
+import { searchComics as searchComicVine } from './services/comicVineService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
-  Loader2, Sparkles, Star, Share2, ExternalLink, Globe, X,
+  Loader2, Sparkles, Star, Share2, ExternalLink, X,
   Key, AlertCircle, ChevronDown, User as UserIcon, ArrowLeft, Info, Book, HelpCircle, ExternalLink as ExtIcon,
-  CreditCard, ShieldAlert, Bookmark
+  CreditCard, ShieldAlert, Bookmark, Pencil, Check
 } from 'lucide-react';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 // --- Components ---
 
@@ -65,7 +65,7 @@ const Home: React.FC<{
       <section className="relative h-[400px] rounded-2xl overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent z-10" />
         <img
-          src="https://images.unsplash.com/photo-1588497859490-85d1c17db96d?auto=format&fit=crop&q=80&w=1200"
+          src="https://wallpapercave.com/wp/wp13746630.jpg"
           alt="Comic book collection background"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
         />
@@ -165,13 +165,35 @@ const ComicDetail: React.FC<{
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [isEditingCover, setIsEditingCover] = useState(false);
+  const [newCoverUrl, setNewCoverUrl] = useState('');
 
   // Reset form state when navigating to a different comic
   useEffect(() => {
     setRating(0);
     setHoverRating(0);
     setReviewText('');
+    setIsEditingCover(false);
+    setNewCoverUrl('');
   }, [id]);
+
+  const handleSaveCover = () => {
+    if (newCoverUrl.trim()) {
+      onUpdateComic({ ...comic, coverUrl: newCoverUrl.trim() });
+    }
+    setIsEditingCover(false);
+    setNewCoverUrl('');
+  };
+
+  const getWhereToRead = (c: Comic): string => {
+    if (c.whereToRead) return c.whereToRead;  // Manual override
+
+    const pub = c.publisher?.toLowerCase() || '';
+    if (pub.includes('marvel')) return 'Available on Marvel Unlimited';
+    if (pub.includes('dc')) return 'Available on DC Universe Infinite';
+
+    return 'Availability varies by region and format.';
+  };
 
   if (!comic) return (
     <div className="flex flex-col items-center py-20 gap-4">
@@ -191,9 +213,45 @@ const ComicDetail: React.FC<{
       <div className="relative z-20 flex flex-col md:flex-row gap-8">
         {/* Cover Column - Left */}
         <div className="md:w-1/5 space-y-6">
-          <div className="rounded-lg overflow-hidden border border-[#1E232B] shadow-2xl bg-[#161A21]">
+          <div className="rounded-lg overflow-hidden border border-[#1E232B] shadow-2xl bg-[#161A21] relative group">
              <img src={comic.coverUrl} alt={comic.title} className="w-full aspect-[2/3] object-cover" />
+             {!isEditingCover && (
+               <button
+                 onClick={() => setIsEditingCover(true)}
+                 className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+               >
+                 <div className="bg-white/10 backdrop-blur-sm p-3 rounded-full">
+                   <Pencil size={20} className="text-white" />
+                 </div>
+               </button>
+             )}
           </div>
+          {isEditingCover && (
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Paste cover image URL..."
+                value={newCoverUrl}
+                onChange={(e) => setNewCoverUrl(e.target.value)}
+                className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#4FD1C5]"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveCover}
+                  className="flex-1 bg-[#4FD1C5] text-black font-bold py-2 rounded-lg text-xs flex items-center justify-center gap-1"
+                >
+                  <Check size={14} /> Save
+                </button>
+                <button
+                  onClick={() => { setIsEditingCover(false); setNewCoverUrl(''); }}
+                  className="flex-1 bg-[#1E232B] text-white font-bold py-2 rounded-lg text-xs flex items-center justify-center gap-1"
+                >
+                  <X size={14} /> Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase">Mark as</p>
@@ -259,6 +317,11 @@ const ComicDetail: React.FC<{
           <div className="space-y-4">
             <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">Story Brief</h3>
             <p className="text-[#B3B8C2] text-lg leading-relaxed italic font-light">{comic.description}</p>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">Where to Read</h3>
+            <p className="text-[#B3B8C2] text-sm">{getWhereToRead(comic)}</p>
           </div>
 
           <div className="bg-[#161A21] p-6 rounded-xl border border-[#1E232B]">
@@ -376,7 +439,6 @@ const AppContent: React.FC = () => {
   const [sortBy, setSortBy] = useState<'title' | 'year' | 'rating'>('title');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Comic[]>([]);
-  const [searchSources, setSearchSources] = useState<{ uri: string; title: string }[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [recommendations, setRecommendations] = useState<Comic[]>([]);
@@ -468,9 +530,8 @@ const AppContent: React.FC = () => {
     setIsSearching(true);
 
     try {
-      const { comics: results, sources } = await searchComicsWithGrounding(searchQuery);
+      const results = await searchComicVine(searchQuery);
       setSearchResults(results);
-      setSearchSources(sources);
     } catch (err: any) {
       setSearchError("Search failed. Please try again.");
     } finally {
@@ -507,96 +568,97 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<Home comics={comics} sortBy={sortBy} setSortBy={setSortBy} recommendations={recommendations} starterPicks={starterPicks} isLoadingRecs={isLoadingRecs} onToggleReadState={handleToggleReadState} continuityCount={continuityComics.length} isFirstVisit={isFirstVisit} onDismissWelcome={handleDismissWelcome} />} />
           <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} />} />
           <Route path="/long-boxes" element={
-            <div className="max-w-6xl mx-auto py-8">
-              <div className="flex items-center gap-4 mb-8">
-                 <Bookmark className="text-[#4FD1C5]" size={40} />
-                 <h2 className="text-5xl font-space text-white tracking-wider">LONG BOXES</h2>
-              </div>
-
-              {/* Filter Tabs */}
-              <div className="flex gap-2 mb-8 border-b border-[#1E232B] pb-4">
-                {(['all', 'read', 'owned', 'want', 'reread'] as const).map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setLongBoxFilter(filter)}
-                    className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
-                      longBoxFilter === filter
-                        ? filter === 'all' ? 'bg-white text-black' :
-                          filter === 'read' ? 'bg-[#4FD1C5] text-black' :
-                          filter === 'owned' ? 'bg-[#9CA3AF] text-black' :
-                          filter === 'want' ? 'bg-[#FBBF24] text-black' :
-                          'bg-[#A78BFA] text-black'
-                        : 'bg-[#1E232B] text-[#B3B8C2] hover:bg-[#2A303C] hover:text-white'
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-
-              {collectedComics.length === 0 ? (
-                <div className="bg-[#161A21] p-24 rounded-3xl border border-[#1E232B] text-center space-y-6">
-                  <Bookmark className="mx-auto text-[#1E232B]" size={80} />
-                  <h3 className="text-2xl text-white font-bold">Your Long Boxes are empty.</h3>
-                  <p className="text-[#B3B8C2] text-lg font-light">Add issues you own or want to collect.</p>
-                  <button onClick={() => navigate('/search')} className="bg-[#4FD1C5] text-black font-bold px-10 py-4 rounded-xl text-lg hover:bg-[#38B2AC] transition-all">BROWSE ISSUES</button>
+            <div className="max-w-5xl mx-auto py-8">
+              {/* Header */}
+              <div className="mb-6">
+                <div className="flex items-center gap-4 mb-2">
+                  <Bookmark className="text-[#4FD1C5]" size={40} />
+                  <h2 className="text-5xl font-space text-white tracking-wider">LONG BOXES</h2>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-8">
-                  {collectedComics.map(comic => (
-                    <ComicCard
-                      key={comic.id}
-                      comic={comic}
-                      onClick={() => navigate(`/comic/${comic.id}`)}
-                      onToggleReadState={handleToggleReadState}
-                    />
+                <p className="text-[#7C828D] text-lg font-light italic ml-14">The comics you've committed to.</p>
+              </div>
+
+              <div className="border-t border-[#1E232B] pt-6">
+                {/* Subdued Filter Tabs */}
+                <div className="flex gap-3 mb-4">
+                  {(['all', 'read', 'owned', 'want', 'reread'] as const).map(filter => (
+                    <button
+                      key={filter}
+                      onClick={() => setLongBoxFilter(filter)}
+                      className={`px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider rounded transition-all ${
+                        longBoxFilter === filter
+                          ? 'text-white border-b-2 border-[#4FD1C5]'
+                          : 'text-[#7C828D] hover:text-[#B3B8C2]'
+                      }`}
+                    >
+                      {filter}
+                    </button>
                   ))}
                 </div>
-              )}
+
+                {/* Meta Count */}
+                <p className="text-[#7C828D] text-sm mb-8">
+                  {collectedComics.length === 0
+                    ? 'No works yet'
+                    : collectedComics.length === 1
+                    ? '1 work in your Long Boxes'
+                    : `${collectedComics.length} works in your Long Boxes`}
+                </p>
+
+                {collectedComics.length === 0 ? (
+                  /* Zero State */
+                  <div className="py-16 space-y-4">
+                    <p className="text-white text-xl">Your Long Boxes are empty.</p>
+                    <p className="text-[#7C828D]">A collection forms over time.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Early State Copy */}
+                    {collectedComics.length <= 3 && (
+                      <p className="text-[#7C828D] text-sm italic">Every collection starts somewhere.</p>
+                    )}
+                    {/* Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+                      {collectedComics.map(comic => (
+                        <ComicCard
+                          key={comic.id}
+                          comic={comic}
+                          onClick={() => navigate(`/comic/${comic.id}`)}
+                          onToggleReadState={handleToggleReadState}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           } />
           <Route path="/search" element={
-            <div className="max-w-4xl mx-auto py-8">
-              <h2 className="text-5xl font-space text-white mb-8 tracking-wider uppercase">Library</h2>
-              <form onSubmit={handleSearch} className="mb-12 relative">
-                <input 
+            <div className="max-w-3xl mx-auto py-8">
+              {/* Header */}
+              <div className="mb-8">
+                <h2 className="text-5xl font-space text-white mb-2 tracking-wider uppercase">Library</h2>
+                <p className="text-[#7C828D] text-lg font-light italic">Search the archive of recorded comics.</p>
+              </div>
+
+              <form onSubmit={handleSearch} className="mb-8 relative">
+                <input
                   type="text"
-                  placeholder="Search the Library..."
-                  className="w-full bg-[#161A21] border-2 border-[#1E232B] focus:border-[#4FD1C5] rounded-2xl py-6 pl-16 pr-8 text-white text-2xl focus:outline-none transition-all shadow-2xl"
+                  placeholder="Search the Library…"
+                  className="w-full bg-[#161A21] border-2 border-[#1E232B] focus:border-[#4FD1C5] rounded-2xl py-6 pl-16 pr-8 text-white text-xl focus:outline-none transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[#B3B8C2]" size={32} />
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[#7C828D]" size={28} />
               </form>
 
-              {searchError === "API_KEY_REQUIRED" && (
-                <div className="mb-8">
-                  <div className="bg-blue-900/20 border border-blue-500/30 p-8 rounded-2xl flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                      <Key className="text-blue-400" size={40} />
-                      <div>
-                        <p className="text-lg font-bold text-white mb-1 tracking-tight">Access Restricted</p>
-                        <p className="text-sm text-[#B3B8C2]">Grounded search requires a Gemini Pro API Key.</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => window.aistudio?.openSelectKey()} 
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg transition-all"
-                    >
-                      SELECT KEY
-                    </button>
+              <div className="border-t border-[#1E232B] pt-8">
+                {isSearching ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="animate-spin text-[#4FD1C5]" size={32} />
                   </div>
-                </div>
-              )}
-
-              {isSearching ? (
-                <div className="flex flex-col items-center py-24 gap-6">
-                  <Loader2 className="animate-spin text-[#4FD1C5]" size={56} />
-                  <p className="text-[#7C828D] font-bold tracking-[0.3em] animate-pulse uppercase">Searching...</p>
-                </div>
-              ) : (
-                <div className="space-y-16">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                ) : searchResults.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     {searchResults.map(comic => (
                       <ComicCard
                         key={comic.id}
@@ -606,93 +668,116 @@ const AppContent: React.FC = () => {
                       />
                     ))}
                   </div>
-                  {searchSources.length > 0 && (
-                    <div className="bg-[#161A21] p-8 rounded-2xl border border-[#1E232B]">
-                      <h4 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] mb-6 flex items-center gap-2 uppercase">
-                        <Globe size={14} /> Source Verification
-                      </h4>
-                      <div className="flex flex-wrap gap-4">
-                        {searchSources.map((source, idx) => (
-                          <a key={idx} href={source.uri} target="_blank" className="text-[10px] bg-[#1E232B] text-[#B3B8C2] px-4 py-2 rounded-full hover:text-white flex items-center gap-2 border border-transparent hover:border-[#4FD1C5] transition-all">
-                            {source.title.substring(0, 30)}... <ExternalLink size={10} />
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                ) : searchQuery && !isSearching ? (
+                  /* No Results */
+                  <div className="py-16 space-y-4">
+                    <p className="text-white text-xl">No matching works found.</p>
+                    <p className="text-[#7C828D]">Try a different title or creator.</p>
+                  </div>
+                ) : (
+                  /* Pre-search orientation */
+                  <div className="py-16">
+                    <p className="text-[#7C828D]">Search by title, creator, or series.</p>
+                  </div>
+                )}
+              </div>
             </div>
           } />
           <Route path="/continuity" element={
-            <div className="max-w-6xl mx-auto py-8">
-              <div className="flex items-center gap-4 mb-8">
-                <BookOpen className="text-[#4FD1C5]" size={40} />
-                <h2 className="text-5xl font-space text-white tracking-wider">CONTINUITY</h2>
+            <div className="max-w-3xl mx-auto py-8">
+              {/* Header */}
+              <div className="mb-8">
+                <div className="flex items-center gap-4 mb-2">
+                  <BookOpen className="text-[#4FD1C5]" size={40} />
+                  <h2 className="text-5xl font-space text-white tracking-wider">CONTINUITY</h2>
+                </div>
+                <p className="text-[#7C828D] text-lg font-light italic ml-14">Your personal reading canon.</p>
               </div>
-              {continuityComics.length === 0 ? (
-                <div className="bg-[#161A21] p-24 rounded-3xl border border-[#1E232B] text-center space-y-6">
-                  <BookOpen className="mx-auto text-[#1E232B]" size={80} />
-                  <h3 className="text-2xl text-white font-bold">Your Continuity hasn't begun yet.</h3>
-                  <p className="text-[#B3B8C2] text-lg font-light">Mark issues as Read or Reread to build your personal canon.</p>
-                  <button onClick={() => navigate('/search')} className="bg-[#4FD1C5] text-black font-bold px-10 py-4 rounded-xl text-lg transition-all">FIND YOUR FIRST ISSUE</button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-8">
-                  {continuityComics.map(comic => (
-                    <ComicCard
-                      key={comic.id}
-                      comic={comic}
-                      onClick={() => navigate(`/comic/${comic.id}`)}
-                      onToggleReadState={handleToggleReadState}
-                    />
-                  ))}
-                </div>
-              )}
+
+              <div className="border-t border-[#1E232B] pt-8">
+                {continuityComics.length === 0 ? (
+                  /* Zero State */
+                  <div className="py-16 space-y-4">
+                    <p className="text-white text-xl">Your Continuity hasn't begun yet.</p>
+                    <p className="text-[#7C828D]">A personal canon forms over time.</p>
+                  </div>
+                ) : (
+                  /* Timeline Stream */
+                  <div className="space-y-6">
+                    {continuityComics.length <= 3 && (
+                      <p className="text-[#7C828D] text-sm italic mb-8">This is the beginning of your reading history.</p>
+                    )}
+                    {continuityComics.map(comic => (
+                      <div
+                        key={comic.id}
+                        onClick={() => navigate(`/comic/${comic.id}`)}
+                        className="flex gap-4 p-4 rounded-lg hover:bg-[#161A21] transition-colors cursor-pointer group"
+                      >
+                        <img
+                          src={comic.coverUrl}
+                          alt={comic.title}
+                          className="w-16 h-24 object-cover rounded shadow-lg"
+                        />
+                        <div className="flex flex-col justify-center">
+                          <h3 className="text-white font-bold text-lg group-hover:text-[#4FD1C5] transition-colors">{comic.title}</h3>
+                          <p className="text-[#7C828D] text-sm">
+                            {comic.readStates?.includes('reread') ? 'Reread' :
+                             comic.readStates?.includes('read') ? 'Read' :
+                             comic.readStates?.includes('owned') ? 'Owned' : ''} · {comic.year}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           } />
           <Route path="/identity" element={
-             <div className="max-w-5xl mx-auto py-12 space-y-12">
-                <header className="flex items-center gap-12 border-b border-[#1E232B] pb-16">
-                   <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#4FD1C5]/30 p-1">
-                      <img src="https://picsum.photos/seed/ink/400/400" className="w-full h-full object-cover rounded-full" />
-                   </div>
-                   <div className="space-y-6">
-                      <div>
-                        <h2 className="text-6xl font-space text-white tracking-widest mb-2">InkAddict</h2>
-                        <p className="text-[#B3B8C2] max-w-xl text-lg font-light leading-relaxed">This is your Identity. Your reading history, collection, and presence on Continuity.</p>
-                      </div>
-                      <div className="flex gap-12">
-                         <div className="text-center cursor-pointer group" onClick={() => navigate('/continuity')}>
-                            <p className="text-4xl font-bold text-white group-hover:text-[#4FD1C5] transition-colors">{journal.length + 248}</p>
-                            <p className="text-[10px] text-[#7C828D] font-bold tracking-[0.2em] uppercase">Read</p>
-                         </div>
-                         <div className="text-center cursor-pointer group" onClick={() => navigate('/long-boxes')}>
-                            <p className="text-4xl font-bold text-white group-hover:text-[#4FD1C5] transition-colors">{collectedComics.length}</p>
-                            <p className="text-[10px] text-[#7C828D] font-bold tracking-[0.2em] uppercase">Owned</p>
-                         </div>
-                      </div>
-                   </div>
-                </header>
-                <div>
-                   <h3 className="text-xs font-bold tracking-[0.3em] text-[#B3B8C2] border-b border-[#1E232B] pb-2 mb-10 uppercase">Activity Pulse</h3>
-                   <div className="h-80 bg-[#161A21] rounded-3xl p-8 border border-[#1E232B] shadow-2xl">
-                      <ResponsiveContainer width="100%" height="100%">
-                         <AreaChart data={[
-                            { name: 'MON', count: 2 }, { name: 'TUE', count: 5 }, { name: 'WED', count: 3 }, 
-                            { name: 'THU', count: 8 }, { name: 'FRI', count: 4 }, { name: 'SAT', count: 12 }, 
-                            { name: 'SUN', count: journal.length + 5 }
-                         ]}>
-                            <defs><linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4FD1C5" stopOpacity={0.3}/><stop offset="95%" stopColor="#4FD1C5" stopOpacity={0}/></linearGradient></defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1E232B" vertical={false} />
-                            <XAxis dataKey="name" stroke="#7C828D" fontSize={10} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={{ backgroundColor: '#161A21', borderRadius: '12px', border: '1px solid #1E232B', color: '#fff' }} />
-                            <Area type="monotone" dataKey="count" stroke="#4FD1C5" fillOpacity={1} fill="url(#colorCount)" strokeWidth={4} />
-                         </AreaChart>
-                      </ResponsiveContainer>
-                   </div>
+            <div className="max-w-3xl mx-auto py-12 space-y-12">
+              {/* Reader Header */}
+              <header className="flex items-center gap-8">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#1E232B]">
+                  <img src="https://picsum.photos/seed/ink/400/400" className="w-full h-full object-cover" />
                 </div>
-             </div>
+                <div>
+                  <h2 className="text-4xl font-space text-white tracking-wider mb-2">InkAddict</h2>
+                  <p className="text-[#7C828D] text-sm font-light italic">This is your reader record — shaped by what you've read, kept, and revisited.</p>
+                </div>
+              </header>
+
+              <div className="border-t border-[#1E232B] pt-12 space-y-12">
+                {/* Reader Profile */}
+                <section>
+                  <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase mb-6">Reader Profile</h3>
+                  <div className="space-y-3">
+                    <p className="text-[#B3B8C2] italic">Reads across genres and eras.</p>
+                    <p className="text-[#B3B8C2] italic">Drawn to creator-driven work.</p>
+                  </div>
+                </section>
+
+                {/* Defining Works */}
+                {continuityComics.filter(c => c.readStates?.includes('reread') || c.readStates?.includes('owned')).length > 0 && (
+                  <section>
+                    <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase mb-6">Defining Works</h3>
+                    <div className="flex gap-4">
+                      {continuityComics
+                        .filter(c => c.readStates?.includes('reread') || c.readStates?.includes('owned'))
+                        .slice(0, 5)
+                        .map(comic => (
+                          <img
+                            key={comic.id}
+                            src={comic.coverUrl}
+                            alt={comic.title}
+                            onClick={() => navigate(`/comic/${comic.id}`)}
+                            className="w-20 h-28 object-cover rounded shadow-lg cursor-pointer hover:scale-105 transition-transform"
+                          />
+                        ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
           } />
         </Routes>
       </main>

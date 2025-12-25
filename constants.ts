@@ -95,7 +95,7 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'DC Comics',
     year: 2017,
     description: 'A thoughtful sci-fi story using characters we grew up with.',
-    coverUrl: 'https://covers.openlibrary.org/b/isbn/1401277489-L.jpg',
+    coverUrl: 'https://static.dc.com/dc/files/default_images/JETSONS_170-001_HD_5b8488b66da828.82577836.jpg?w=640',
   },
   {
     id: 'starter-4',

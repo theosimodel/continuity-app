@@ -17,6 +17,7 @@ export interface Comic {
   isFavorite?: boolean;
   isGenerated?: boolean;
   readStates?: ReadState[];
+  whereToRead?: string;  // Manual override for Where to Read text
 }
 
 export interface Review {
