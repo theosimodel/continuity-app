@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ComicCard from './components/ComicCard';
-import { INITIAL_COMICS } from './constants';
+import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState } from './types';
 import { getComicRecommendations, searchComicsWithGrounding } from './services/geminiService';
 import {
@@ -21,11 +21,15 @@ const Home: React.FC<{
   sortBy: string,
   setSortBy: (s: any) => void,
   recommendations: Comic[],
+  starterPicks: Comic[],
   isLoadingRecs: boolean,
-  onToggleReadState: (c: Comic, state: ReadState) => void
-}> = ({ comics, sortBy, setSortBy, recommendations, isLoadingRecs, onToggleReadState }) => {
+  onToggleReadState: (c: Comic, state: ReadState) => void,
+  continuityCount: number,
+  isFirstVisit: boolean,
+  onDismissWelcome: () => void
+}> = ({ comics, sortBy, setSortBy, recommendations, starterPicks, isLoadingRecs, onToggleReadState, continuityCount, isFirstVisit, onDismissWelcome }) => {
   const navigate = useNavigate();
-  
+
   const sortedComics = useMemo(() => {
     return [...comics].sort((a, b) => {
       if (sortBy === 'title') return a.title.localeCompare(b.title);
@@ -35,8 +39,29 @@ const Home: React.FC<{
     });
   }, [comics, sortBy]);
 
+  // Use starter picks until user has 3+ items in Continuity
+  const picksToShow = continuityCount < 3 ? starterPicks : recommendations;
+  const picksSubheader = continuityCount < 3
+    ? "Hand-picked to start your Continuity"
+    : "From your Continuity";
+
   return (
     <div className="space-y-12">
+      {/* Welcome message for first-time users */}
+      {isFirstVisit && (
+        <section className="bg-gradient-to-r from-[#161A21] to-[#1E232B] p-8 rounded-xl border border-[#4FD1C5]/20 relative">
+          <button
+            onClick={onDismissWelcome}
+            className="absolute top-4 right-4 text-[#7C828D] hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
+          <h2 className="text-3xl font-space font-bold text-white mb-2">Welcome to Continuity</h2>
+          <p className="text-[#B3B8C2] text-lg mb-2">Track what you read. Discover what matters. Build your personal canon.</p>
+          <p className="text-[#7C828D] text-sm">Start anywhere. Your Continuity grows as you read.</p>
+        </section>
+      )}
+
       <section className="relative h-[400px] rounded-2xl overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent z-10" />
         <img
@@ -102,17 +127,17 @@ const Home: React.FC<{
           </div>
           <div>
             <h3 className="text-white font-bold text-lg uppercase tracking-wider">Picks</h3>
-            <p className="text-xs text-[#7C828D]">From your Continuity</p>
+            <p className="text-xs text-[#7C828D]">{picksSubheader}</p>
           </div>
         </div>
-        {isLoadingRecs ? (
+        {isLoadingRecs && continuityCount > 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="animate-spin text-[#4FD1C5]" size={40} />
             <p className="text-[#7C828D] text-sm animate-pulse">Preparing your Picks…</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-6">
-            {recommendations.map(comic => (
+            {picksToShow.map(comic => (
               <ComicCard
                 key={comic.id}
                 comic={comic}
@@ -358,7 +383,15 @@ const AppContent: React.FC = () => {
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [longBoxFilter, setLongBoxFilter] = useState<ReadState | 'all'>('all');
+  const [starterPicks, setStarterPicks] = useState<Comic[]>(STARTER_PICKS);
+  const [isFirstVisit, setIsFirstVisit] = useState(() => {
+    return localStorage.getItem('continuity-welcomed') !== 'true';
+  });
 
+  const handleDismissWelcome = () => {
+    setIsFirstVisit(false);
+    localStorage.setItem('continuity-welcomed', 'true');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -403,6 +436,7 @@ const AppContent: React.FC = () => {
     setComics(updateList(comics));
     setSearchResults(updateList(searchResults));
     setRecommendations(updateList(recommendations));
+    setStarterPicks(updateList(starterPicks));
     setJournal(prev => prev.map(entry =>
       entry.comic.id === comic.id ? { ...entry, comic: toggleState(entry.comic) } : entry
     ));
@@ -447,9 +481,9 @@ const AppContent: React.FC = () => {
 
   const allComicsForDetail = useMemo(() => {
     const map = new Map();
-    [...comics, ...searchResults, ...recommendations].forEach(c => map.set(c.id, c));
+    [...comics, ...searchResults, ...recommendations, ...starterPicks].forEach(c => map.set(c.id, c));
     return Array.from(map.values());
-  }, [comics, searchResults, recommendations]);
+  }, [comics, searchResults, recommendations, starterPicks]);
 
   const collectedComics = useMemo(() => {
     const comicsWithStates = allComicsForDetail.filter(c => c.readStates?.length);
@@ -457,13 +491,20 @@ const AppContent: React.FC = () => {
     return comicsWithStates.filter(c => c.readStates?.includes(longBoxFilter));
   }, [allComicsForDetail, longBoxFilter]);
 
+  // Continuity = comics marked as Read, Reread, or Owned
+  const continuityComics = useMemo(() => {
+    return allComicsForDetail.filter(c =>
+      c.readStates?.includes('read') || c.readStates?.includes('reread') || c.readStates?.includes('owned')
+    );
+  }, [allComicsForDetail]);
+
   return (
     <div className="min-h-screen bg-[#0E1116] pb-20">
       <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} />
       
       <main className="max-w-6xl mx-auto px-4 pt-8">
         <Routes>
-          <Route path="/" element={<Home comics={comics} sortBy={sortBy} setSortBy={setSortBy} recommendations={recommendations} isLoadingRecs={isLoadingRecs} onToggleReadState={handleToggleReadState} />} />
+          <Route path="/" element={<Home comics={comics} sortBy={sortBy} setSortBy={setSortBy} recommendations={recommendations} starterPicks={starterPicks} isLoadingRecs={isLoadingRecs} onToggleReadState={handleToggleReadState} continuityCount={continuityComics.length} isFirstVisit={isFirstVisit} onDismissWelcome={handleDismissWelcome} />} />
           <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} />} />
           <Route path="/long-boxes" element={
             <div className="max-w-6xl mx-auto py-8">
@@ -584,35 +625,27 @@ const AppContent: React.FC = () => {
             </div>
           } />
           <Route path="/continuity" element={
-            <div className="max-w-4xl mx-auto py-8">
-              <h2 className="text-5xl font-space text-white mb-12 tracking-wider">CONTINUITY</h2>
-              {journal.length === 0 ? (
+            <div className="max-w-6xl mx-auto py-8">
+              <div className="flex items-center gap-4 mb-8">
+                <BookOpen className="text-[#4FD1C5]" size={40} />
+                <h2 className="text-5xl font-space text-white tracking-wider">CONTINUITY</h2>
+              </div>
+              {continuityComics.length === 0 ? (
                 <div className="bg-[#161A21] p-24 rounded-3xl border border-[#1E232B] text-center space-y-6">
                   <BookOpen className="mx-auto text-[#1E232B]" size={80} />
                   <h3 className="text-2xl text-white font-bold">Your Continuity hasn't begun yet.</h3>
-                  <p className="text-[#B3B8C2] text-lg font-light">Add issues you've read to start building your personal canon.</p>
-                  <button onClick={() => navigate('/search')} className="bg-[#4FD1C5] text-black font-bold px-10 py-4 rounded-xl text-lg transition-all">ADD YOUR FIRST ISSUE</button>
+                  <p className="text-[#B3B8C2] text-lg font-light">Mark issues as Read or Reread to build your personal canon.</p>
+                  <button onClick={() => navigate('/search')} className="bg-[#4FD1C5] text-black font-bold px-10 py-4 rounded-xl text-lg transition-all">FIND YOUR FIRST ISSUE</button>
                 </div>
               ) : (
-                <div className="space-y-8">
-                  {journal.map(entry => (
-                    <div key={entry.id} className="bg-[#161A21] border border-[#1E232B] rounded-2xl p-8 flex gap-8 group">
-                      <div className="w-28 shrink-0 cursor-pointer overflow-hidden rounded-lg" onClick={() => navigate(`/comic/${entry.comic.id}`)}>
-                        <img src={entry.comic.coverUrl} className="w-full aspect-[2/3] object-cover transition-transform group-hover:scale-110" />
-                      </div>
-                      <div className="flex-1 space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <h3 className="text-2xl text-white font-bold group-hover:text-[#4FD1C5] transition-colors">{entry.comic.title}</h3>
-                            <div className="flex items-center gap-2">
-                              {[1, 2, 3, 4, 5].map(s => <Star key={s} size={16} className={s <= entry.rating ? 'text-[#4FD1C5] fill-[#4FD1C5]' : 'text-[#1E232B]'} />)}
-                            </div>
-                          </div>
-                          <span className="text-[#7C828D] text-xs font-bold tracking-widest uppercase flex items-center gap-2 bg-[#0E1116] px-3 py-1 rounded-full"><Calendar size={12}/> {entry.dateRead}</span>
-                        </div>
-                        <p className="text-[#B3B8C2] text-lg italic leading-relaxed font-light">"{entry.text}"</p>
-                      </div>
-                    </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-8">
+                  {continuityComics.map(comic => (
+                    <ComicCard
+                      key={comic.id}
+                      comic={comic}
+                      onClick={() => navigate(`/comic/${comic.id}`)}
+                      onToggleReadState={handleToggleReadState}
+                    />
                   ))}
                 </div>
               )}

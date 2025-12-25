@@ -63,3 +63,48 @@ export const INITIAL_COMICS: Comic[] = [
     coverUrl: 'https://covers.openlibrary.org/b/isbn/1632157098-L.jpg',
   }
 ];
+
+// Starter picks for first-time users (Continuity = 0)
+// Order reflects onboarding flow, not quality
+export const STARTER_PICKS: Comic[] = [
+  {
+    id: 'starter-1',
+    title: 'Fables, Vol. 1: Legends in Exile',
+    writer: 'Bill Willingham',
+    artist: 'Lan Medina',
+    publisher: 'DC Vertigo',
+    year: 2002,
+    description: 'A mature reimagining of fairy tales through the lens of modern society.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/1563899426-L.jpg',
+  },
+  {
+    id: 'starter-2',
+    title: 'Hawkeye Vol. 1: My Life as a Weapon',
+    writer: 'Matt Fraction',
+    artist: 'David Aja',
+    publisher: 'Marvel Comics',
+    year: 2013,
+    description: 'A fun, character-driven superhero story.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/0785165622-L.jpg',
+  },
+  {
+    id: 'starter-3',
+    title: 'The Jetsons',
+    writer: 'Jimmy Palmiotti',
+    artist: 'Pier Brito',
+    publisher: 'DC Comics',
+    year: 2017,
+    description: 'A thoughtful sci-fi story using characters we grew up with.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/1401277489-L.jpg',
+  },
+  {
+    id: 'starter-4',
+    title: 'Wytches',
+    writer: 'Scott Snyder',
+    artist: 'Jock',
+    publisher: 'Image Comics',
+    year: 2014,
+    description: 'A dark, unsettling horror story that lingers.',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/1632153807-L.jpg',
+  },
+];
