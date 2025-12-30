@@ -1,17 +1,21 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
+import { User } from '@supabase/supabase-js';
 import Navbar from './components/Navbar';
 import ComicCard from './components/ComicCard';
+import AuthModal from './components/AuthModal';
+import Footer from './components/Footer';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
   Key, AlertCircle, ChevronDown, User as UserIcon, ArrowLeft, Info, Book, HelpCircle, ExternalLink as ExtIcon,
-  CreditCard, ShieldAlert, Bookmark, Pencil, Check
+  CreditCard, ShieldAlert, Bookmark, Pencil, Check, Archive, Eye, PenTool
 } from 'lucide-react';
 
 // --- Components ---
@@ -427,6 +431,7 @@ const ComicDetail: React.FC<{
           ) : null}
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
@@ -450,9 +455,98 @@ const AppContent: React.FC = () => {
     return localStorage.getItem('continuity-welcomed') !== 'true';
   });
 
+  // Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Profile editing state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Avatar sigils - marks of readership
+  const avatarSigils = [
+    { id: 'sigil:book', icon: Book, label: 'Book' },
+    { id: 'sigil:bookmark', icon: Bookmark, label: 'Bookmark' },
+    { id: 'sigil:archive', icon: Archive, label: 'Archive' },
+    { id: 'sigil:page', icon: BookOpen, label: 'Open Page' },
+    { id: 'sigil:eye', icon: Eye, label: 'Eye' },
+    { id: 'sigil:pen', icon: PenTool, label: 'Pen' },
+  ];
+
+  // Helper to render sigil icon
+  const renderSigil = (sigilId: string | undefined, size: number) => {
+    const sigil = avatarSigils.find(s => s.id === sigilId);
+    if (sigil) {
+      const IconComponent = sigil.icon;
+      return <IconComponent size={size} className="text-[#7C828D]" />;
+    }
+    return <UserIcon size={size} className="text-[#7C828D]" />;
+  };
+
   const handleDismissWelcome = () => {
     setIsFirstVisit(false);
     localStorage.setItem('continuity-welcomed', 'true');
+  };
+
+  // Auth state listener
+  useEffect(() => {
+    const { data: { subscription } } = onAuthStateChange(async (authUser) => {
+      setUser(authUser);
+      if (authUser) {
+        const userProfile = await getProfile(authUser.id);
+        setProfile(userProfile);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+    setUser(null);
+    setProfile(null);
+  };
+
+  const handleStartEditProfile = () => {
+    setEditUsername(profile?.username || '');
+    setEditBio(profile?.bio || '');
+    setEditAvatarUrl(profile?.avatar_url || 'sigil:book');
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setIsSavingProfile(true);
+    const success = await updateProfile(user.id, {
+      username: editUsername.trim(),
+      bio: editBio.trim(),
+      avatar_url: editAvatarUrl.trim() || undefined,
+    });
+    if (success) {
+      setProfile({
+        id: user.id,
+        username: editUsername.trim(),
+        bio: editBio.trim(),
+        avatar_url: editAvatarUrl.trim() || undefined,
+      });
+      setIsEditingProfile(false);
+    }
+    setIsSavingProfile(false);
+  };
+
+  const handleCancelEditProfile = () => {
+    setIsEditingProfile(false);
+    setEditUsername('');
+    setEditBio('');
+    setEditAvatarUrl('');
   };
 
   useEffect(() => {
@@ -631,6 +725,7 @@ const AppContent: React.FC = () => {
                   </div>
                 )}
               </div>
+              <Footer />
             </div>
           } />
           <Route path="/search" element={
@@ -681,6 +776,7 @@ const AppContent: React.FC = () => {
                   </div>
                 )}
               </div>
+              <Footer />
             </div>
           } />
           <Route path="/continuity" element={
@@ -731,57 +827,176 @@ const AppContent: React.FC = () => {
                   </div>
                 )}
               </div>
+              <Footer />
             </div>
           } />
           <Route path="/identity" element={
             <div className="max-w-3xl mx-auto py-12 space-y-12">
-              {/* Reader Header */}
-              <header className="flex items-center gap-8">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#1E232B]">
-                  <img src="https://picsum.photos/seed/ink/400/400" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <h2 className="text-4xl font-space text-white tracking-wider mb-2">InkAddict</h2>
-                  <p className="text-[#7C828D] text-sm font-light italic">This is your reader record — shaped by what you've read, kept, and revisited.</p>
-                </div>
-              </header>
-
-              <div className="border-t border-[#1E232B] pt-12 space-y-12">
-                {/* Reader Profile */}
-                <section>
-                  <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase mb-6">Reader Profile</h3>
-                  <div className="space-y-3">
-                    <p className="text-[#B3B8C2] italic">Reads across genres and eras.</p>
-                    <p className="text-[#B3B8C2] italic">Drawn to creator-driven work.</p>
-                  </div>
-                </section>
-
-                {/* Defining Works */}
-                {continuityComics.filter(c => c.readStates?.includes('reread') || c.readStates?.includes('owned')).length > 0 && (
-                  <section>
-                    <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase mb-6">Defining Works</h3>
-                    <div className="flex gap-4">
-                      {continuityComics
-                        .filter(c => c.readStates?.includes('reread') || c.readStates?.includes('owned'))
-                        .slice(0, 5)
-                        .map(comic => (
-                          <img
-                            key={comic.id}
-                            src={comic.coverUrl}
-                            alt={comic.title}
-                            onClick={() => navigate(`/comic/${comic.id}`)}
-                            className="w-20 h-28 object-cover rounded shadow-lg cursor-pointer hover:scale-105 transition-transform"
-                          />
-                        ))}
+              {user ? (
+                <>
+                  {/* Reader Header - Logged In */}
+                  <header className="flex items-start gap-8">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-24 h-24 rounded-full border-2 border-[#1E232B] bg-[#161A21] flex items-center justify-center">
+                        {isEditingProfile
+                          ? renderSigil(editAvatarUrl || 'sigil:book', 40)
+                          : renderSigil(profile?.avatar_url || 'sigil:book', 40)
+                        }
+                      </div>
+                      {isEditingProfile && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase text-center">Choose a symbol</p>
+                          <div className="flex gap-2">
+                            {avatarSigils.map((sigil) => {
+                              const IconComponent = sigil.icon;
+                              return (
+                                <button
+                                  key={sigil.id}
+                                  onClick={() => setEditAvatarUrl(sigil.id)}
+                                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                                    editAvatarUrl === sigil.id
+                                      ? 'border-[#4FD1C5] bg-[#4FD1C5]/10'
+                                      : 'border-[#1E232B] bg-[#0E1116] hover:border-[#7C828D]'
+                                  }`}
+                                  title={sigil.label}
+                                >
+                                  <IconComponent
+                                    size={18}
+                                    className={editAvatarUrl === sigil.id ? 'text-[#4FD1C5]' : 'text-[#7C828D]'}
+                                  />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </section>
-                )}
-              </div>
+                    <div className="flex-1">
+                      {isEditingProfile ? (
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={editUsername}
+                            onChange={(e) => setEditUsername(e.target.value)}
+                            placeholder="Username"
+                            className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-4 py-2 text-white text-2xl font-space focus:outline-none focus:border-[#4FD1C5]"
+                          />
+                          <textarea
+                            value={editBio}
+                            onChange={(e) => setEditBio(e.target.value)}
+                            placeholder="A note about your reading."
+                            rows={2}
+                            className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-4 py-2 text-[#B3B8C2] text-sm focus:outline-none focus:border-[#4FD1C5] resize-none"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleSaveProfile}
+                              disabled={isSavingProfile}
+                              className="bg-[#4FD1C5] text-black font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-[#38B2AC] transition-colors disabled:opacity-50"
+                            >
+                              {isSavingProfile ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelEditProfile}
+                              className="bg-[#1E232B] text-white font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-[#2A303C] transition-colors"
+                            >
+                              <X size={14} />
+                              Discard
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <h2 className="text-4xl font-space text-white tracking-wider mb-2">{profile?.username || 'Reader'}</h2>
+                          <p className="text-[#7C828D] text-sm font-light italic">
+                            {profile?.bio || "This is your reader record — shaped by what you've read, kept, and revisited."}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    {!isEditingProfile && (
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={handleStartEditProfile}
+                          className="text-[#7C828D] hover:text-[#4FD1C5] text-sm transition-colors flex items-center gap-1"
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={handleSignOut}
+                          className="text-[#7C828D] hover:text-white text-sm transition-colors"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    )}
+                  </header>
+
+                  <div className="border-t border-[#1E232B] pt-12 space-y-12">
+                    {/* Reader Profile */}
+                    <section>
+                      <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase mb-6">Reader Profile</h3>
+                      <div className="space-y-3">
+                        <p className="text-[#B3B8C2] italic">Reads widely across genres and eras.</p>
+                        <p className="text-[#B3B8C2] italic">Drawn to creator-driven work.</p>
+                      </div>
+                    </section>
+
+                    {/* Defining Works */}
+                    {continuityComics.filter(c => c.readStates?.includes('reread') || c.readStates?.includes('owned')).length > 0 && (
+                      <section>
+                        <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase mb-6">Defining Works</h3>
+                        <div className="flex gap-4">
+                          {continuityComics
+                            .filter(c => c.readStates?.includes('reread') || c.readStates?.includes('owned'))
+                            .slice(0, 5)
+                            .map(comic => (
+                              <img
+                                key={comic.id}
+                                src={comic.coverUrl}
+                                alt={comic.title}
+                                onClick={() => navigate(`/comic/${comic.id}`)}
+                                className="w-20 h-28 object-cover rounded shadow-lg cursor-pointer hover:scale-105 transition-transform"
+                              />
+                            ))}
+                        </div>
+                      </section>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Not Logged In */
+                <div className="py-16 text-center space-y-6">
+                  <div className="w-24 h-24 rounded-full bg-[#161A21] border-2 border-[#1E232B] flex items-center justify-center mx-auto">
+                    <UserIcon size={40} className="text-[#7C828D]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-space text-white">Your Identity</h2>
+                    <p className="text-[#7C828D]">Sign in to build your reader record.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="bg-[#4FD1C5] text-black font-bold px-8 py-3 rounded-lg hover:bg-[#38B2AC] transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              )}
+              <Footer />
             </div>
           } />
         </Routes>
       </main>
 
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false);
+        }}
+      />
     </div>
   );
 };

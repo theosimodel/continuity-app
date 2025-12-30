@@ -41,14 +41,23 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage }) => {
               {item.label}
             </button>
           ))}
+          <button
+            onClick={() => onNavigate('search')}
+            className={`text-[10px] font-bold flex items-center gap-2 tracking-[0.2em] transition-colors ${
+              activePage === 'search' ? 'text-[#4FD1C5]' : 'text-[#B3B8C2] hover:text-white'
+            }`}
+          >
+            <Search size={16} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Mobile search - only visible on small screens */}
+        <div className="flex md:hidden items-center">
           <button
             className="p-2 text-[#B3B8C2] hover:text-[#4FD1C5] transition-colors"
             onClick={() => onNavigate('search')}
           >
-            <Search size={22} />
+            <Search size={20} />
           </button>
         </div>
       </div>

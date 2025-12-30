@@ -1,17 +1,8 @@
 /**
- * Supabase Service - Database Integration (Prep Work)
- *
- * This file is NOT connected to the app yet.
- * It's ready for when you set up Supabase.
- *
- * To activate:
- * 1. Create a Supabase project at https://supabase.com
- * 2. Run the SQL schema in Supabase SQL Editor
- * 3. Copy .env.example to .env and add your keys
- * 4. Import and use these functions in App.tsx
+ * Supabase Service - Auth & Database Integration
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User, Session } from '@supabase/supabase-js';
 import { Comic, ReadState } from '../types';
 
 // Initialize Supabase client
@@ -23,6 +14,130 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Check if Supabase is configured
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(supabaseUrl && supabaseAnonKey);
+};
+
+// ============================================
+// AUTH
+// ============================================
+
+export interface AuthError {
+  message: string;
+}
+
+export const signUp = async (
+  email: string,
+  password: string,
+  username: string
+): Promise<{ user: User | null; error: AuthError | null }> => {
+  // First, sign up the user
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { user: null, error: { message: error.message } };
+  }
+
+  // Create profile for the user
+  if (data.user) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: data.user.id,
+        username,
+      });
+
+    if (profileError) {
+      console.error('Error creating profile:', profileError);
+      // Don't fail signup if profile creation fails
+    }
+  }
+
+  return { user: data.user, error: null };
+};
+
+export const signIn = async (
+  email: string,
+  password: string
+): Promise<{ user: User | null; error: AuthError | null }> => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { user: null, error: { message: error.message } };
+  }
+
+  return { user: data.user, error: null };
+};
+
+export const signOut = async (): Promise<void> => {
+  await supabase.auth.signOut();
+};
+
+export const getCurrentUser = async (): Promise<User | null> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
+
+export const getCurrentSession = async (): Promise<Session | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
+};
+
+export const onAuthStateChange = (
+  callback: (user: User | null) => void
+) => {
+  return supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user ?? null);
+  });
+};
+
+// ============================================
+// PROFILES
+// ============================================
+
+export interface Profile {
+  id: string;
+  username: string;
+  avatar_url?: string;
+  bio?: string;
+}
+
+export const getProfile = async (userId: string): Promise<Profile | null> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching profile:', error);
+    return null;
+  }
+
+  return data;
+};
+
+export const updateProfile = async (
+  userId: string,
+  updates: Partial<Profile>
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({
+      id: userId,
+      ...updates,
+    });
+
+  if (error) {
+    console.error('Error updating profile:', error);
+    return false;
+  }
+
+  return true;
 };
 
 // ============================================

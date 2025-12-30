@@ -1,6 +1,6 @@
 import { Comic } from '../types';
 
-const API_KEY = 'a73ccafe821c2bc5828f001c9ac21a3d25bb41ed';
+const API_KEY = import.meta.env.VITE_COMICVINE_API_KEY || '';
 const BASE_URL = 'https://comicvine.gamespot.com/api';
 
 interface ComicVineIssue {
