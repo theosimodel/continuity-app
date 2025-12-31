@@ -15,7 +15,7 @@ import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, upsertComic } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, upsertComic, updateUserComic } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
@@ -1048,7 +1048,7 @@ const AppContent: React.FC = () => {
 
   const handleToggleReadState = async (comic: Comic, state: ReadState) => {
     // Ensure comic exists in Supabase (for comics from search)
-    upsertComic(comic);
+    await upsertComic(comic);
 
     const toggleState = (c: Comic): Comic => {
       const currentStates = c.readStates || [];
@@ -1074,11 +1074,23 @@ const AppContent: React.FC = () => {
     ));
   };
 
-  const handleLogComic = (comic: Comic, reviewData: Partial<Review>) => {
+  const handleLogComic = async (comic: Comic, reviewData: Partial<Review>) => {
+    // Ensure comic exists in Supabase
+    await upsertComic(comic);
+
+    // Save rating/review to user_comics
+    if (user) {
+      await updateUserComic(user.id, comic.id, {
+        rating: reviewData.rating,
+        review: reviewData.text,
+        dateRead: new Date().toISOString().split('T')[0],
+      });
+    }
+
     const newEntry: JournalEntry = {
       id: Date.now().toString(),
       comicId: comic.id,
-      userId: 'user-1',
+      userId: user?.id || 'user-1',
       rating: reviewData.rating || 0,
       text: reviewData.text || '',
       dateRead: new Date().toISOString().split('T')[0],
