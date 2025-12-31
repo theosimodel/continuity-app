@@ -14,7 +14,7 @@ import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, removeComicFromList, getContinuityCount, fetchComicById } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
@@ -1000,6 +1000,24 @@ const AppContent: React.FC = () => {
     return success;
   };
 
+  const handleDeleteList = async (listId: string) => {
+    const success = await deleteList(listId);
+    if (success) {
+      setUserLists(prev => prev.filter(list => list.id !== listId));
+      setListItemCounts(prev => {
+        const newCounts = { ...prev };
+        delete newCounts[listId];
+        return newCounts;
+      });
+      setListComics(prev => {
+        const newComics = { ...prev };
+        delete newComics[listId];
+        return newComics;
+      });
+      navigate('/');
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const fetchRecs = async () => {
@@ -1568,6 +1586,7 @@ const AppContent: React.FC = () => {
           setEditingList(null);
         }}
         onSave={editingList ? handleUpdateList : handleCreateList}
+        onDelete={handleDeleteList}
         editList={editingList}
       />
     </div>
