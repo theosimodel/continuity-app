@@ -46,3 +46,29 @@ export interface UserProfile {
 export interface JournalEntry extends Review {
   comic: Comic;
 }
+
+// Lists feature
+export type ListVisibility = 'private' | 'unlisted' | 'public';
+
+export interface List {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  visibility: ListVisibility;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListItem {
+  id: string;
+  list_id: string;
+  comic_id: string;
+  sort_order: number;
+  added_at: string;
+}
+
+export interface ListWithComics extends List {
+  items: ListItem[];
+  comics: Comic[];
+}

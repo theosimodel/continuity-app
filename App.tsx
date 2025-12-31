@@ -7,16 +7,19 @@ import ComicCard from './components/ComicCard';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
 import LandingPage from './components/LandingPage';
+import CreateListModal from './components/CreateListModal';
+import ListView from './components/ListView';
+import ListCard from './components/ListCard';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
-import { Comic, JournalEntry, UserProfile, Review, ReadState } from './types';
+import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, removeComicFromList, getContinuityCount } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
   Key, AlertCircle, ChevronDown, User as UserIcon, ArrowLeft, Info, Book, HelpCircle, ExternalLink as ExtIcon,
-  CreditCard, ShieldAlert, Bookmark, Pencil, Check, Archive, Eye, PenTool
+  CreditCard, ShieldAlert, Bookmark, Pencil, Check, Archive, Eye, PenTool, Plus, List as ListIcon
 } from 'lucide-react';
 
 // --- Components ---
@@ -163,8 +166,13 @@ const ComicDetail: React.FC<{
   comics: Comic[],
   onLog: (comic: Comic, review: Partial<Review>) => void,
   onToggleReadState: (comic: Comic, state: ReadState) => void,
-  onUpdateComic: (comic: Comic) => void
-}> = ({ comics, onLog, onToggleReadState, onUpdateComic }) => {
+  onUpdateComic: (comic: Comic) => void,
+  userLists?: List[],
+  onAddToList?: (listId: string, comic: Comic) => void,
+  isSignedIn?: boolean,
+  onShowCreateList?: () => void,
+  isCanonEditor?: boolean
+}> = ({ comics, onLog, onToggleReadState, onUpdateComic, userLists = [], onAddToList, isSignedIn, onShowCreateList, isCanonEditor = false }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const comic = comics.find(c => c.id === id);
@@ -175,6 +183,15 @@ const ComicDetail: React.FC<{
   const [isEditingCover, setIsEditingCover] = useState(false);
   const [newCoverUrl, setNewCoverUrl] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
+  const [showListMenu, setShowListMenu] = useState(false);
+  const [continuityCount, setContinuityCount] = useState<number>(0);
+  const [isEditingCredits, setIsEditingCredits] = useState(false);
+  const [editWriter, setEditWriter] = useState('');
+  const [editArtist, setEditArtist] = useState('');
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editDescription, setEditDescription] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
 
   // Reset form state when navigating to a different comic
   useEffect(() => {
@@ -184,6 +201,20 @@ const ComicDetail: React.FC<{
     setIsEditingCover(false);
     setNewCoverUrl('');
     setShareStatus('idle');
+    setShowListMenu(false);
+    setContinuityCount(0);
+    setIsEditingCredits(false);
+    setEditWriter('');
+    setEditArtist('');
+    setIsEditingDescription(false);
+    setEditDescription('');
+    setIsEditingTitle(false);
+    setEditTitle('');
+
+    // Fetch continuity count for this comic
+    if (id) {
+      getContinuityCount(id).then(count => setContinuityCount(count));
+    }
   }, [id]);
 
   const handleShare = async () => {
@@ -219,6 +250,73 @@ const ComicDetail: React.FC<{
     setNewCoverUrl('');
   };
 
+  const handleStartEditCredits = () => {
+    setEditWriter(comic?.writer || '');
+    setEditArtist(comic?.artist || '');
+    setIsEditingCredits(true);
+  };
+
+  const handleSaveCredits = () => {
+    if (comic) {
+      onUpdateComic({
+        ...comic,
+        writer: editWriter.trim() || comic.writer,
+        artist: editArtist.trim() || comic.artist,
+      });
+    }
+    setIsEditingCredits(false);
+    setEditWriter('');
+    setEditArtist('');
+  };
+
+  const handleCancelEditCredits = () => {
+    setIsEditingCredits(false);
+    setEditWriter('');
+    setEditArtist('');
+  };
+
+  const handleStartEditDescription = () => {
+    setEditDescription(comic?.description || '');
+    setIsEditingDescription(true);
+  };
+
+  const handleSaveDescription = () => {
+    if (comic) {
+      onUpdateComic({
+        ...comic,
+        description: editDescription.trim() || comic.description,
+      });
+    }
+    setIsEditingDescription(false);
+    setEditDescription('');
+  };
+
+  const handleCancelEditDescription = () => {
+    setIsEditingDescription(false);
+    setEditDescription('');
+  };
+
+  const handleStartEditTitle = () => {
+    setEditTitle(comic?.title || '');
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveTitle = () => {
+    if (comic && editTitle.trim()) {
+      onUpdateComic({
+        ...comic,
+        title: editTitle.trim(),
+      });
+    }
+    setIsEditingTitle(false);
+    setEditTitle('');
+  };
+
+  const handleCancelEditTitle = () => {
+    setIsEditingTitle(false);
+    setEditTitle('');
+  };
+
   const getWhereToRead = (c: Comic): string => {
     if (c.whereToRead) return c.whereToRead;  // Manual override
 
@@ -249,7 +347,7 @@ const ComicDetail: React.FC<{
         <div className="md:w-1/5 space-y-6">
           <div className="rounded-lg overflow-hidden border border-[#1E232B] shadow-2xl bg-[#161A21] relative group">
              <img src={comic.coverUrl} alt={comic.title} className="w-full aspect-[2/3] object-cover" />
-             {!isEditingCover && (
+             {!isEditingCover && isCanonEditor && (
                <button
                  onClick={() => setIsEditingCover(true)}
                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -260,7 +358,7 @@ const ComicDetail: React.FC<{
                </button>
              )}
           </div>
-          {isEditingCover && (
+          {isEditingCover && isCanonEditor && (
             <div className="space-y-2">
               <input
                 type="text"
@@ -335,6 +433,63 @@ const ComicDetail: React.FC<{
                 </>
               )}
             </button>
+
+            {/* Add to List */}
+            {isSignedIn && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowListMenu(!showListMenu)}
+                  className="w-full bg-[#161A21] border border-[#1E232B] hover:bg-[#1E232B] text-white py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-xs font-bold"
+                >
+                  <Plus size={16} />
+                  Add to reading list
+                </button>
+
+                {showListMenu && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#161A21] border border-[#1E232B] rounded-xl overflow-hidden z-20 shadow-xl">
+                    {userLists.length === 0 ? (
+                      <div className="p-4 text-center">
+                        <p className="text-[#7C828D] text-sm mb-3">No lists yet</p>
+                        <button
+                          onClick={() => {
+                            setShowListMenu(false);
+                            onShowCreateList?.();
+                          }}
+                          className="text-[#4FD1C5] text-sm font-medium hover:underline"
+                        >
+                          Create your first list
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {userLists.map((list) => (
+                          <button
+                            key={list.id}
+                            onClick={() => {
+                              onAddToList?.(list.id, comic);
+                              setShowListMenu(false);
+                            }}
+                            className="w-full px-4 py-3 text-left text-white hover:bg-[#1E232B] transition-colors border-b border-[#1E232B] last:border-0"
+                          >
+                            <span className="text-sm font-medium">{list.title}</span>
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setShowListMenu(false);
+                            onShowCreateList?.();
+                          }}
+                          className="w-full px-4 py-3 text-left text-[#4FD1C5] hover:bg-[#1E232B] transition-colors flex items-center gap-2"
+                        >
+                          <Plus size={14} />
+                          <span className="text-sm font-medium">New List</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -346,23 +501,166 @@ const ComicDetail: React.FC<{
               <span className="mx-2 text-[#1E232B]">|</span>
               <Book size={12} /> {comic.publisher}
             </div>
-            <h1 className="text-6xl font-space text-white tracking-wide leading-none">{comic.title}</h1>
+            {isEditingTitle && isCanonEditor ? (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Comic title"
+                  className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-4 py-3 text-4xl font-space text-white focus:outline-none focus:border-[#4FD1C5]"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveTitle}
+                    className="bg-[#4FD1C5] text-black font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
+                  >
+                    <Check size={14} /> Save
+                  </button>
+                  <button
+                    onClick={handleCancelEditTitle}
+                    className="bg-[#1E232B] text-white font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
+                  >
+                    <X size={14} /> Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={`relative ${isCanonEditor ? 'group' : ''} inline-block`}>
+                <h1 className="text-6xl font-space text-white tracking-wide leading-none">{comic.title}</h1>
+                {isCanonEditor && (
+                  <button
+                    onClick={handleStartEditTitle}
+                    className="absolute -right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-[#1E232B] p-2 rounded-full"
+                    title="Edit title"
+                  >
+                    <Pencil size={14} className="text-[#7C828D]" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-8 border-y border-[#1E232B] py-6">
-            <div className="space-y-1">
-              <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase">Writer</p>
-              <p className="text-white font-bold text-lg">{comic.writer}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase">Artist</p>
-              <p className="text-white font-bold text-lg">{comic.artist}</p>
-            </div>
+          <div className="border-y border-[#1E232B] py-6">
+            {!isCanonEditor && (
+              <p className="text-[#4A4F57] text-[10px] mb-4">Metadata curated by Continuity.</p>
+            )}
+            {isEditingCredits && isCanonEditor ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase">Writer</label>
+                    <input
+                      type="text"
+                      value={editWriter}
+                      onChange={(e) => setEditWriter(e.target.value)}
+                      placeholder="Writer name"
+                      className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#4FD1C5]"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase">Artist</label>
+                    <input
+                      type="text"
+                      value={editArtist}
+                      onChange={(e) => setEditArtist(e.target.value)}
+                      placeholder="Artist name"
+                      className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#4FD1C5]"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveCredits}
+                    className="bg-[#4FD1C5] text-black font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
+                  >
+                    <Check size={14} /> Save
+                  </button>
+                  <button
+                    onClick={handleCancelEditCredits}
+                    className="bg-[#1E232B] text-white font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
+                  >
+                    <X size={14} /> Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={`grid grid-cols-2 gap-8 relative ${isCanonEditor ? 'group' : ''}`}>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase">Writer</p>
+                  <p className={`text-white font-bold text-lg ${comic.writer === 'Unknown' || !comic.writer ? 'text-[#7C828D] italic' : ''}`}>
+                    {comic.writer === 'Unknown' || !comic.writer ? 'Credits pending' : comic.writer}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase">Artist</p>
+                  <p className={`text-white font-bold text-lg ${comic.artist === 'Unknown' || !comic.artist ? 'text-[#7C828D] italic' : ''}`}>
+                    {comic.artist === 'Unknown' || !comic.artist ? 'Credits pending' : comic.artist}
+                  </p>
+                </div>
+                {isCanonEditor && (
+                  <button
+                    onClick={handleStartEditCredits}
+                    className="absolute -right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-[#1E232B] p-2 rounded-full"
+                    title="Edit credits"
+                  >
+                    <Pencil size={14} className="text-[#7C828D]" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">Story Brief</h3>
-            <p className="text-[#B3B8C2] text-lg leading-relaxed italic font-light">{comic.description}</p>
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">Story Brief</h3>
+              {!isCanonEditor && (
+                <p className="text-[#4A4F57] text-[10px]">Curated by Continuity</p>
+              )}
+            </div>
+            {isEditingDescription && isCanonEditor ? (
+              <div className="space-y-3">
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Add a description..."
+                  rows={5}
+                  className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#4FD1C5] resize-none"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveDescription}
+                    className="bg-[#4FD1C5] text-black font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
+                  >
+                    <Check size={14} /> Save
+                  </button>
+                  <button
+                    onClick={handleCancelEditDescription}
+                    className="bg-[#1E232B] text-white font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
+                  >
+                    <X size={14} /> Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={`relative ${isCanonEditor ? 'group' : ''}`}>
+                <p className={`text-white text-base leading-relaxed ${!comic.description || comic.description === 'No description available.' ? 'text-[#7C828D] italic' : ''}`}>
+                  {comic.description || 'No description available.'}
+                </p>
+                {isCanonEditor && (
+                  <button
+                    onClick={handleStartEditDescription}
+                    className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 transition-opacity bg-[#1E232B] p-2 rounded-full"
+                    title="Edit description"
+                  >
+                    <Pencil size={14} className="text-[#7C828D]" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -447,18 +745,20 @@ const ComicDetail: React.FC<{
         <div className="md:w-1/5 space-y-6">
           <div className="bg-[#161A21] p-4 rounded-xl border border-[#1E232B]">
             <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase mb-2">Continuity</p>
-            <p className="text-white font-bold text-2xl">12,483</p>
-            <p className="text-[#7C828D] text-xs">in Continuity</p>
+            <p className="text-white font-bold text-lg">
+              {continuityCount > 0 ? `In ${continuityCount.toLocaleString()} Continuities` : 'Not yet added'}
+            </p>
           </div>
 
           <div className="bg-[#161A21] p-4 rounded-xl border border-[#1E232B]">
             <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase mb-2">Rating</p>
-            <p className="text-white font-bold text-2xl">{comic.rating?.toFixed(1) || '—'}</p>
+            <p className="text-white font-bold text-2xl">{comic.rating ? comic.rating.toFixed(1) : ''}</p>
+            {!comic.rating && <p className="text-[#7C828D] text-sm">Not yet rated</p>}
           </div>
 
           {comic.readStates?.length ? (
             <div className="bg-[#161A21] p-4 rounded-xl border border-[#1E232B]">
-              <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase mb-2">Your Status</p>
+              <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase mb-2">Your reading status</p>
               <div className="flex flex-wrap gap-1">
                 {comic.readStates.map(state => (
                   <span key={state} className={`text-xs px-2 py-0.5 rounded font-bold uppercase ${
@@ -509,6 +809,14 @@ const AppContent: React.FC = () => {
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // Lists state
+  const [userLists, setUserLists] = useState<List[]>([]);
+  const [listItemCounts, setListItemCounts] = useState<Record<string, number>>({});
+  const [listComics, setListComics] = useState<Record<string, Comic[]>>({});
+  const [showCreateListModal, setShowCreateListModal] = useState(false);
+  const [editingList, setEditingList] = useState<List | null>(null);
+  const [showAddToListMenu, setShowAddToListMenu] = useState<string | null>(null); // comic id
+
   // Avatar sigils - marks of readership
   const avatarSigils = [
     { id: 'sigil:book', icon: Book, label: 'Book' },
@@ -541,8 +849,13 @@ const AppContent: React.FC = () => {
       if (authUser) {
         const userProfile = await getProfile(authUser.id);
         setProfile(userProfile);
+        // Load user's lists
+        loadUserLists(authUser.id);
       } else {
         setProfile(null);
+        setUserLists([]);
+        setListItemCounts({});
+        setListComics({});
       }
     });
 
@@ -550,6 +863,29 @@ const AppContent: React.FC = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Load user's lists with item counts and preview comics
+  const loadUserLists = async (userId: string) => {
+    const lists = await getUserLists(userId);
+    setUserLists(lists);
+
+    // Load item counts and preview comics for each list
+    const counts: Record<string, number> = {};
+    const comics: Record<string, Comic[]> = {};
+
+    await Promise.all(lists.map(async (list) => {
+      const items = await getListItems(list.id);
+      counts[list.id] = items.length;
+      // Get comics for preview (first 3)
+      const previewComics = items.slice(0, 3)
+        .map(item => allComicsForDetail.find(c => c.id === item.comic_id))
+        .filter((c): c is Comic => c !== undefined);
+      comics[list.id] = previewComics;
+    }));
+
+    setListItemCounts(counts);
+    setListComics(comics);
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -589,6 +925,65 @@ const AppContent: React.FC = () => {
     setEditUsername('');
     setEditBio('');
     setEditAvatarUrl('');
+  };
+
+  // List handlers
+  const handleCreateList = async (title: string, description: string, visibility: ListVisibility) => {
+    if (!user) return;
+    const newList = await createList(user.id, title, description || undefined, visibility);
+    if (newList) {
+      setUserLists(prev => [newList, ...prev]);
+      setListItemCounts(prev => ({ ...prev, [newList.id]: 0 }));
+      setListComics(prev => ({ ...prev, [newList.id]: [] }));
+    }
+  };
+
+  const handleAddToList = async (listId: string, comic: Comic) => {
+    const item = await addComicToList(listId, comic.id);
+    if (item) {
+      setListItemCounts(prev => ({
+        ...prev,
+        [listId]: (prev[listId] || 0) + 1,
+      }));
+      setListComics(prev => ({
+        ...prev,
+        [listId]: [...(prev[listId] || []).slice(0, 2), comic].slice(0, 3),
+      }));
+    }
+    setShowAddToListMenu(null);
+  };
+
+  const handleUpdateList = async (title: string, description: string, visibility: ListVisibility) => {
+    if (!editingList) return;
+    const success = await updateList(editingList.id, { title, description: description || undefined, visibility });
+    if (success) {
+      setUserLists(prev => prev.map(list =>
+        list.id === editingList.id
+          ? { ...list, title, description: description || undefined, visibility, updated_at: new Date().toISOString() }
+          : list
+      ));
+    }
+    setEditingList(null);
+  };
+
+  const handleEditList = (list: List) => {
+    setEditingList(list);
+    setShowCreateListModal(true);
+  };
+
+  const handleRemoveFromList = async (listId: string, comicId: string) => {
+    const success = await removeComicFromList(listId, comicId);
+    if (success) {
+      setListItemCounts(prev => ({
+        ...prev,
+        [listId]: Math.max((prev[listId] || 1) - 1, 0),
+      }));
+      setListComics(prev => ({
+        ...prev,
+        [listId]: (prev[listId] || []).filter(c => c.id !== comicId),
+      }));
+    }
+    return success;
   };
 
   useEffect(() => {
@@ -716,7 +1111,8 @@ const AppContent: React.FC = () => {
               document.getElementById('starter-picks')?.scrollIntoView({ behavior: 'smooth' });
             }
           }} />} />
-          <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} />} />
+          <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} isCanonEditor={profile?.is_admin === true} />} />
+          <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} />} />
           <Route path="/long-boxes" element={
             <div className="max-w-5xl mx-auto py-8">
               {/* Header */}
@@ -1020,6 +1416,38 @@ const AppContent: React.FC = () => {
                         </div>
                       </section>
                     )}
+
+                    {/* Your Lists */}
+                    <section>
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">Your Lists</h3>
+                        <button
+                          onClick={() => setShowCreateListModal(true)}
+                          className="text-[#4FD1C5] text-sm font-medium hover:underline flex items-center gap-1"
+                        >
+                          <Plus size={14} />
+                          Create List
+                        </button>
+                      </div>
+                      {userLists.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <ListIcon size={32} className="text-[#4A4F57] mx-auto mb-3" />
+                          <p className="text-[#7C828D]">No lists yet.</p>
+                          <p className="text-[#4A4F57] text-sm mt-1">Create curated reading paths to share.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {userLists.map(list => (
+                            <ListCard
+                              key={list.id}
+                              list={list}
+                              comics={listComics[list.id] || []}
+                              itemCount={listItemCounts[list.id] || 0}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
                   </div>
                 </>
               ) : (
@@ -1117,6 +1545,16 @@ const AppContent: React.FC = () => {
         onSuccess={() => {
           setShowAuthModal(false);
         }}
+      />
+
+      <CreateListModal
+        isOpen={showCreateListModal}
+        onClose={() => {
+          setShowCreateListModal(false);
+          setEditingList(null);
+        }}
+        onSave={editingList ? handleUpdateList : handleCreateList}
+        editList={editingList}
       />
     </div>
   );

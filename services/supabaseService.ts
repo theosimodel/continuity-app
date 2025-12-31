@@ -3,7 +3,7 @@
  */
 
 import { createClient, User, Session } from '@supabase/supabase-js';
-import { Comic, ReadState } from '../types';
+import { Comic, ReadState, List, ListItem, ListVisibility } from '../types';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -104,6 +104,7 @@ export interface Profile {
   username: string;
   avatar_url?: string;
   bio?: string;
+  is_admin?: boolean;
 }
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
@@ -323,3 +324,205 @@ const mapDbToComic = (row: DbComic): Comic => ({
   coverUrl: row.cover_url,
   whereToRead: row.where_to_read,
 });
+
+// ============================================
+// LISTS
+// ============================================
+
+export const getUserLists = async (userId: string): Promise<List[]> => {
+  const { data, error } = await supabase
+    .from('lists')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching user lists:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const getListById = async (listId: string): Promise<List | null> => {
+  const { data, error } = await supabase
+    .from('lists')
+    .select('*')
+    .eq('id', listId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching list:', error);
+    return null;
+  }
+
+  return data;
+};
+
+export const getListItems = async (listId: string): Promise<ListItem[]> => {
+  const { data, error } = await supabase
+    .from('list_items')
+    .select('*')
+    .eq('list_id', listId)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching list items:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const createList = async (
+  userId: string,
+  title: string,
+  description?: string,
+  visibility: ListVisibility = 'private'
+): Promise<List | null> => {
+  const { data, error } = await supabase
+    .from('lists')
+    .insert({
+      user_id: userId,
+      title,
+      description,
+      visibility,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating list:', error);
+    return null;
+  }
+
+  return data;
+};
+
+export const updateList = async (
+  listId: string,
+  updates: Partial<Pick<List, 'title' | 'description' | 'visibility'>>
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('lists')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', listId);
+
+  if (error) {
+    console.error('Error updating list:', error);
+    return false;
+  }
+
+  return true;
+};
+
+export const deleteList = async (listId: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('lists')
+    .delete()
+    .eq('id', listId);
+
+  if (error) {
+    console.error('Error deleting list:', error);
+    return false;
+  }
+
+  return true;
+};
+
+export const addComicToList = async (
+  listId: string,
+  comicId: string
+): Promise<ListItem | null> => {
+  // Get current max sort_order
+  const { data: existing } = await supabase
+    .from('list_items')
+    .select('sort_order')
+    .eq('list_id', listId)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  const nextOrder = existing && existing.length > 0 ? existing[0].sort_order + 1 : 0;
+
+  const { data, error } = await supabase
+    .from('list_items')
+    .insert({
+      list_id: listId,
+      comic_id: comicId,
+      sort_order: nextOrder,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding comic to list:', error);
+    return null;
+  }
+
+  // Update list's updated_at
+  await supabase
+    .from('lists')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', listId);
+
+  return data;
+};
+
+export const removeComicFromList = async (
+  listId: string,
+  comicId: string
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('list_items')
+    .delete()
+    .eq('list_id', listId)
+    .eq('comic_id', comicId);
+
+  if (error) {
+    console.error('Error removing comic from list:', error);
+    return false;
+  }
+
+  return true;
+};
+
+export const getListItemCount = async (listId: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('list_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('list_id', listId);
+
+  if (error) {
+    console.error('Error getting list item count:', error);
+    return 0;
+  }
+
+  return count || 0;
+};
+
+// ============================================
+// METRICS
+// ============================================
+
+/**
+ * Get the "In Continuity" count for a comic.
+ * Counts unique users who marked the comic as 'read' OR 'reread'.
+ * Excludes 'owned' and 'want' per metrics spec.
+ */
+export const getContinuityCount = async (comicId: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('user_comics')
+    .select('*', { count: 'exact', head: true })
+    .eq('comic_id', comicId)
+    .or('read_states.cs.{read},read_states.cs.{reread}');
+
+  if (error) {
+    console.error('Error getting continuity count:', error);
+    return 0;
+  }
+
+  return count || 0;
+};
