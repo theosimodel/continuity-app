@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Loader2, Mail, Lock, User } from 'lucide-react';
-import { signIn, signUp } from '../services/supabaseService';
+import { X, Loader2, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { signIn, signUp, resetPassword } from '../services/supabaseService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,11 +9,12 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -21,10 +22,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setIsLoading(true);
 
     try {
-      if (mode === 'signup') {
+      if (mode === 'forgot') {
+        const { error } = await resetPassword(email);
+        if (error) {
+          setError(error.message);
+        } else {
+          setSuccess('Check your email for a password reset link.');
+        }
+      } else if (mode === 'signup') {
         if (!username.trim()) {
           setError('Username is required');
           setIsLoading(false);
@@ -58,11 +67,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
     setPassword('');
     setUsername('');
     setError(null);
+    setSuccess(null);
   };
 
-  const switchMode = () => {
+  const switchMode = (newMode: 'signin' | 'signup' | 'forgot') => {
     resetForm();
-    setMode(mode === 'signin' ? 'signup' : 'signin');
+    setMode(newMode);
   };
 
   return (
@@ -76,13 +86,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
           >
             <X size={20} />
           </button>
+          {mode === 'forgot' && (
+            <button
+              onClick={() => switchMode('signin')}
+              className="flex items-center gap-1 text-[#7C828D] hover:text-white transition-colors text-sm mb-3"
+            >
+              <ArrowLeft size={16} />
+              Back to sign in
+            </button>
+          )}
           <h2 className="text-2xl font-space text-white">
-            {mode === 'signin' ? 'Welcome back' : 'Join Continuity'}
+            {mode === 'signin' ? 'Welcome back' : mode === 'signup' ? 'Join Continuity' : 'Reset password'}
           </h2>
           <p className="text-[#7C828D] text-sm mt-1">
             {mode === 'signin'
               ? 'Sign in to access your reading history.'
-              : 'Create an account to start your canon.'}
+              : mode === 'signup'
+              ? 'Create an account to start your canon.'
+              : "Enter your email and we'll send you a reset link."}
           </p>
         </div>
 
@@ -123,55 +144,75 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
             </div>
           </div>
 
-          <div>
-            <label className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase block mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7C828D]" size={18} />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'signup' ? 'Create a password' : 'Enter your password'}
-                className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg py-3 pl-10 pr-4 text-white focus:outline-none focus:border-[#4FD1C5] transition-colors"
-                required
-                minLength={6}
-              />
+          {mode !== 'forgot' && (
+            <div>
+              <label className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase block mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7C828D]" size={18} />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'signup' ? 'Create a password' : 'Enter your password'}
+                  className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg py-3 pl-10 pr-4 text-white focus:outline-none focus:border-[#4FD1C5] transition-colors"
+                  required
+                  minLength={6}
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {mode === 'signin' && (
+            <button
+              type="button"
+              onClick={() => switchMode('forgot')}
+              className="text-[#4FD1C5] text-sm hover:underline"
+            >
+              Forgot password?
+            </button>
+          )}
 
           {error && (
             <p className="text-red-400 text-sm">{error}</p>
           )}
 
+          {success && (
+            <p className="text-green-400 text-sm">{success}</p>
+          )}
+
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !!success}
             className="w-full bg-[#4FD1C5] text-black font-bold py-3 rounded-lg hover:bg-[#38B2AC] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <Loader2 className="animate-spin" size={20} />
             ) : mode === 'signin' ? (
               'Sign In'
-            ) : (
+            ) : mode === 'signup' ? (
               'Create Account'
+            ) : (
+              'Send Reset Link'
             )}
           </button>
         </form>
 
         {/* Footer */}
-        <div className="p-6 border-t border-[#1E232B] text-center">
-          <p className="text-[#7C828D] text-sm">
-            {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-            <button
-              onClick={switchMode}
-              className="text-[#4FD1C5] hover:underline"
-            >
-              {mode === 'signin' ? 'Sign up' : 'Sign in'}
-            </button>
-          </p>
-        </div>
+        {mode !== 'forgot' && (
+          <div className="p-6 border-t border-[#1E232B] text-center">
+            <p className="text-[#7C828D] text-sm">
+              {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
+              <button
+                onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+                className="text-[#4FD1C5] hover:underline"
+              >
+                {mode === 'signin' ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

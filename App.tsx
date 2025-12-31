@@ -10,6 +10,7 @@ import LandingPage from './components/LandingPage';
 import CreateListModal from './components/CreateListModal';
 import ListView from './components/ListView';
 import ListCard from './components/ListCard';
+import ResetPassword from './components/ResetPassword';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
@@ -1151,6 +1152,7 @@ const AppContent: React.FC = () => {
           }} />} />
           <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} isCanonEditor={profile?.is_admin === true} />} />
           <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/long-boxes" element={
             <div className="max-w-5xl mx-auto py-8">
               {/* Header */}

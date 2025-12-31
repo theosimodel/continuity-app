@@ -95,6 +95,34 @@ export const onAuthStateChange = (
   });
 };
 
+export const resetPassword = async (
+  email: string
+): Promise<{ error: AuthError | null }> => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/#/reset-password`,
+  });
+
+  if (error) {
+    return { error: { message: error.message } };
+  }
+
+  return { error: null };
+};
+
+export const updatePassword = async (
+  newPassword: string
+): Promise<{ error: AuthError | null }> => {
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) {
+    return { error: { message: error.message } };
+  }
+
+  return { error: null };
+};
+
 // ============================================
 // PROFILES
 // ============================================
