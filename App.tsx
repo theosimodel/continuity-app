@@ -1050,16 +1050,21 @@ const AppContent: React.FC = () => {
     // Ensure comic exists in Supabase (for comics from search)
     await upsertComic(comic);
 
-    const toggleState = (c: Comic): Comic => {
-      const currentStates = c.readStates || [];
-      const hasState = currentStates.includes(state);
-      return {
-        ...c,
-        readStates: hasState
-          ? currentStates.filter(s => s !== state)
-          : [...currentStates, state]
-      };
-    };
+    const currentStates = comic.readStates || [];
+    const hasState = currentStates.includes(state);
+    const newStates = hasState
+      ? currentStates.filter(s => s !== state)
+      : [...currentStates, state];
+
+    // Save to Supabase
+    if (user) {
+      await updateUserComic(user.id, comic.id, { readStates: newStates });
+    }
+
+    const toggleState = (c: Comic): Comic => ({
+      ...c,
+      readStates: newStates
+    });
 
     const updateList = (list: Comic[]) => list.map(c =>
       c.id === comic.id ? toggleState(c) : c
