@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import ComicCard from './components/ComicCard';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
+import LandingPage from './components/LandingPage';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState } from './types';
 import { getComicRecommendations } from './services/geminiService';
@@ -30,8 +31,10 @@ const Home: React.FC<{
   onToggleReadState: (c: Comic, state: ReadState) => void,
   continuityCount: number,
   isFirstVisit: boolean,
-  onDismissWelcome: () => void
-}> = ({ comics, sortBy, setSortBy, recommendations, starterPicks, isLoadingRecs, onToggleReadState, continuityCount, isFirstVisit, onDismissWelcome }) => {
+  onDismissWelcome: () => void,
+  isSignedIn: boolean,
+  onStartContinuity: () => void
+}> = ({ comics, sortBy, setSortBy, recommendations, starterPicks, isLoadingRecs, onToggleReadState, continuityCount, isFirstVisit, onDismissWelcome, isSignedIn, onStartContinuity }) => {
   const navigate = useNavigate();
 
   const sortedComics = useMemo(() => {
@@ -82,10 +85,10 @@ const Home: React.FC<{
           <p className="text-[#B3B8C2] text-lg mb-8 line-clamp-2">Track what you're reading, build your collection, and discover new universes.</p>
           <div className="flex gap-4">
             <button
-              onClick={() => navigate('/search')}
+              onClick={onStartContinuity}
               className="bg-white text-black font-bold px-8 py-3 rounded hover:bg-[#4FD1C5] transition-colors"
             >
-              BEGIN YOUR CONTINUITY
+              Start your Continuity
             </button>
           </div>
         </div>
@@ -124,7 +127,7 @@ const Home: React.FC<{
         </div>
       </section>
 
-      <section className="bg-[#161A21] p-8 rounded-xl border border-[#1E232B]">
+      <section id="starter-picks" className="bg-[#161A21] p-8 rounded-xl border border-[#1E232B]">
         <div className="flex items-center gap-3 mb-8">
           <div className="bg-[#4FD1C5] p-2 rounded-lg">
             <Sparkles className="text-black" size={20} />
@@ -171,6 +174,7 @@ const ComicDetail: React.FC<{
   const [reviewText, setReviewText] = useState('');
   const [isEditingCover, setIsEditingCover] = useState(false);
   const [newCoverUrl, setNewCoverUrl] = useState('');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
 
   // Reset form state when navigating to a different comic
   useEffect(() => {
@@ -179,7 +183,33 @@ const ComicDetail: React.FC<{
     setReviewText('');
     setIsEditingCover(false);
     setNewCoverUrl('');
+    setShareStatus('idle');
   }, [id]);
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: comic?.title || 'Comic',
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or share failed, fallback to clipboard
+        if ((err as Error).name !== 'AbortError') {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareStatus('copied');
+          setTimeout(() => setShareStatus('idle'), 2000);
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareStatus('copied');
+      setTimeout(() => setShareStatus('idle'), 2000);
+    }
+  };
 
   const handleSaveCover = () => {
     if (newCoverUrl.trim()) {
@@ -289,9 +319,21 @@ const ComicDetail: React.FC<{
                 REREAD
               </button>
             </div>
-            <button className="w-full bg-[#161A21] border border-[#1E232B] hover:bg-[#1E232B] text-white py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-xs font-bold">
-              <Share2 size={16} />
-              Share
+            <button
+              onClick={handleShare}
+              className="w-full bg-[#161A21] border border-[#1E232B] hover:bg-[#1E232B] text-white py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-xs font-bold"
+            >
+              {shareStatus === 'copied' ? (
+                <>
+                  <Check size={16} />
+                  Link Copied
+                </>
+              ) : (
+                <>
+                  <Share2 size={16} />
+                  Share
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -655,11 +697,25 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0E1116] pb-20">
-      <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} />
+      <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
       
       <main className="max-w-6xl mx-auto px-4 pt-8">
         <Routes>
-          <Route path="/" element={<Home comics={comics} sortBy={sortBy} setSortBy={setSortBy} recommendations={recommendations} starterPicks={starterPicks} isLoadingRecs={isLoadingRecs} onToggleReadState={handleToggleReadState} continuityCount={continuityComics.length} isFirstVisit={isFirstVisit} onDismissWelcome={handleDismissWelcome} />} />
+          <Route path="/welcome" element={<LandingPage onStart={() => {
+            if (!user) {
+              setShowAuthModal(true);
+            } else {
+              navigate('/');
+            }
+          }} />} />
+          <Route path="/" element={<Home comics={comics} sortBy={sortBy} setSortBy={setSortBy} recommendations={recommendations} starterPicks={starterPicks} isLoadingRecs={isLoadingRecs} onToggleReadState={handleToggleReadState} continuityCount={continuityComics.length} isFirstVisit={isFirstVisit} onDismissWelcome={handleDismissWelcome} isSignedIn={!!user} onStartContinuity={() => {
+            if (!user) {
+              setShowAuthModal(true);
+            } else {
+              // Scroll to starter picks section
+              document.getElementById('starter-picks')?.scrollIntoView({ behavior: 'smooth' });
+            }
+          }} />} />
           <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} />} />
           <Route path="/long-boxes" element={
             <div className="max-w-5xl mx-auto py-8">
@@ -984,6 +1040,71 @@ const AppContent: React.FC = () => {
                   </button>
                 </div>
               )}
+              <Footer />
+            </div>
+          } />
+
+          {/* Static Pages */}
+          <Route path="/privacy" element={
+            <div className="max-w-[720px] mx-auto py-20">
+              <h1 className="text-4xl font-space text-white mb-6">Privacy</h1>
+              <div className="space-y-6 text-[#B3B8C2] text-lg leading-relaxed">
+                <p>
+                  Continuity respects your privacy. We collect only what is necessary to
+                  provide the service: your account information, reading states, and any
+                  notes you choose to add.
+                </p>
+                <p>
+                  We do not sell your data. We do not track you across other websites.
+                  Your reading history exists for you alone.
+                </p>
+                <p>
+                  This policy may evolve as Continuity grows, but our intent remains the same:
+                  to keep your personal reading canon personal.
+                </p>
+              </div>
+              <p className="text-[#7C828D] text-sm mt-12">Last updated: 2025</p>
+              <Footer />
+            </div>
+          } />
+
+          <Route path="/terms" element={
+            <div className="max-w-[720px] mx-auto py-20">
+              <h1 className="text-4xl font-space text-white mb-6">Terms</h1>
+              <div className="space-y-6 text-[#B3B8C2] text-lg leading-relaxed">
+                <p>
+                  Continuity is provided as-is, without warranties of any kind.
+                  Features may change, evolve, or disappear as the product grows.
+                </p>
+                <p>
+                  Any content you add remains yours. You are responsible for what you choose
+                  to record or share.
+                </p>
+                <p>
+                  By using Continuity, you agree to use it respectfully and in good faith.
+                </p>
+              </div>
+              <p className="text-[#7C828D] text-sm mt-12">Last updated: 2025</p>
+              <Footer />
+            </div>
+          } />
+
+          <Route path="/about" element={
+            <div className="max-w-[720px] mx-auto py-20">
+              <h1 className="text-4xl font-space text-white mb-6">About Continuity</h1>
+              <div className="space-y-6 text-[#B3B8C2] text-lg leading-relaxed">
+                <p>
+                  Reading comics is easy. Remembering them isn't.
+                </p>
+                <p>
+                  Continuity exists to help readers track, reflect on, and preserve
+                  their personal reading history—without noise, pressure, or performance.
+                </p>
+                <p>
+                  It's not a feed. It's not a leaderboard.
+                  It's a personal canon.
+                </p>
+              </div>
               <Footer />
             </div>
           } />

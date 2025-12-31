@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -8,11 +9,11 @@ const Footer: React.FC = () => {
           <p className="text-[#7C828D] text-sm font-space">Continuity</p>
           <p className="text-[#4A4F57] text-xs">© 2025</p>
           <div className="flex items-center justify-center gap-3 text-[#4A4F57] text-xs pt-2">
-            <span className="hover:text-[#7C828D] cursor-pointer transition-colors">Privacy</span>
+            <Link to="/privacy" className="hover:text-[#7C828D] transition-colors">Privacy</Link>
             <span>·</span>
-            <span className="hover:text-[#7C828D] cursor-pointer transition-colors">Terms</span>
+            <Link to="/terms" className="hover:text-[#7C828D] transition-colors">Terms</Link>
             <span>·</span>
-            <span className="hover:text-[#7C828D] cursor-pointer transition-colors">About</span>
+            <Link to="/about" className="hover:text-[#7C828D] transition-colors">About</Link>
           </div>
         </div>
       </div>
