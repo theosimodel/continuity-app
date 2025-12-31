@@ -49,10 +49,25 @@ const ShareModal: React.FC<ShareModalProps> = ({
     window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
   };
 
-  const handleShareViaMessages = () => {
-    // SMS link with message body
-    const body = encodeURIComponent(`${shareText}\n${shareUrl}`);
-    window.open(`sms:?body=${body}`, '_blank');
+  const handleShareViaMessages = async () => {
+    // Use native share API if available (works on macOS, iOS, Android)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        // User cancelled or share failed - fall back to SMS
+        const body = encodeURIComponent(`${shareText}\n${shareUrl}`);
+        window.open(`sms:?body=${body}`, '_blank');
+      }
+    } else {
+      // Fallback for browsers without native share
+      const body = encodeURIComponent(`${shareText}\n${shareUrl}`);
+      window.open(`sms:?body=${body}`, '_blank');
+    }
   };
 
   return (

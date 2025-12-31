@@ -14,7 +14,7 @@ import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, removeComicFromList, getContinuityCount } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, removeComicFromList, getContinuityCount, fetchComicById } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
@@ -871,20 +871,34 @@ const AppContent: React.FC = () => {
 
     // Load item counts and preview comics for each list
     const counts: Record<string, number> = {};
-    const comics: Record<string, Comic[]> = {};
+    const comicsMap: Record<string, Comic[]> = {};
+
+    // Build a lookup from local comics (INITIAL_COMICS + others)
+    const localComicsMap = new Map<string, Comic>();
+    [...INITIAL_COMICS, ...STARTER_PICKS].forEach(c => localComicsMap.set(c.id, c));
 
     await Promise.all(lists.map(async (list) => {
       const items = await getListItems(list.id);
       counts[list.id] = items.length;
-      // Get comics for preview (first 3)
-      const previewComics = items.slice(0, 3)
-        .map(item => allComicsForDetail.find(c => c.id === item.comic_id))
-        .filter((c): c is Comic => c !== undefined);
-      comics[list.id] = previewComics;
+
+      // Get comics for preview (first 3), fetching from Supabase if not local
+      const previewComics: Comic[] = [];
+      for (const item of items.slice(0, 3)) {
+        // First check local cache
+        let comic = localComicsMap.get(item.comic_id);
+        // If not found locally, fetch from Supabase
+        if (!comic) {
+          comic = await fetchComicById(item.comic_id) || undefined;
+        }
+        if (comic) {
+          previewComics.push(comic);
+        }
+      }
+      comicsMap[list.id] = previewComics;
     }));
 
     setListItemCounts(counts);
-    setListComics(comics);
+    setListComics(comicsMap);
   };
 
   const handleSignOut = async () => {
