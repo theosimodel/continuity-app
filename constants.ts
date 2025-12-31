@@ -75,7 +75,7 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'DC Vertigo',
     year: 2002,
     description: 'A mature reimagining of fairy tales through the lens of modern society.',
-    coverUrl: 'https://covers.openlibrary.org/b/isbn/1563899426-L.jpg',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/21444-2983-23777-1-fables.jpg',
   },
   {
     id: 'starter-2',
@@ -85,7 +85,7 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'Marvel Comics',
     year: 2013,
     description: 'A fun, character-driven superhero story.',
-    coverUrl: 'https://covers.openlibrary.org/b/isbn/0785165622-L.jpg',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3066706-hawkeye2012001_dc11.jpg',
   },
   {
     id: 'starter-3',
@@ -95,7 +95,7 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'DC Comics',
     year: 2017,
     description: 'A thoughtful sci-fi story using characters we grew up with.',
-    coverUrl: 'https://static.dc.com/dc/files/default_images/JETSONS_170-001_HD_5b8488b66da828.82577836.jpg?w=640',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/6218553-01.jpg',
   },
   {
     id: 'starter-4',
@@ -105,6 +105,6 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'Image Comics',
     year: 2014,
     description: 'A dark, unsettling horror story that lingers.',
-    coverUrl: 'https://covers.openlibrary.org/b/isbn/1632153807-L.jpg',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/4213498-01.jpg',
   },
 ];
