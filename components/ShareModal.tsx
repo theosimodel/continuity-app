@@ -50,22 +50,23 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   const handleShareViaMessages = async () => {
-    // Use native share API if available (works on macOS, iOS, Android)
+    // Combine message and URL into single text for reliable sharing
+    // (navigator.share with separate url/text fields doesn't work reliably on macOS)
+    const fullShareText = `${shareText}\n\n${shareUrl}`;
+
     if (navigator.share) {
       try {
         await navigator.share({
-          title: title,
-          text: shareText,
-          url: shareUrl,
+          text: fullShareText,
         });
       } catch (err) {
         // User cancelled or share failed - fall back to SMS
-        const body = encodeURIComponent(`${shareText}\n${shareUrl}`);
+        const body = encodeURIComponent(fullShareText);
         window.open(`sms:?body=${body}`, '_blank');
       }
     } else {
       // Fallback for browsers without native share
-      const body = encodeURIComponent(`${shareText}\n${shareUrl}`);
+      const body = encodeURIComponent(fullShareText);
       window.open(`sms:?body=${body}`, '_blank');
     }
   };
