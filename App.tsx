@@ -14,7 +14,7 @@ import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, upsertComic } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
@@ -953,6 +953,9 @@ const AppContent: React.FC = () => {
   };
 
   const handleAddToList = async (listId: string, comic: Comic) => {
+    // First, ensure the comic exists in Supabase (for comics from search)
+    await upsertComic(comic);
+
     const item = await addComicToList(listId, comic.id);
     if (item) {
       setListItemCounts(prev => ({
@@ -1042,7 +1045,10 @@ const AppContent: React.FC = () => {
     ));
   };
 
-  const handleToggleReadState = (comic: Comic, state: ReadState) => {
+  const handleToggleReadState = async (comic: Comic, state: ReadState) => {
+    // Ensure comic exists in Supabase (for comics from search)
+    upsertComic(comic);
+
     const toggleState = (c: Comic): Comic => {
       const currentStates = c.readStates || [];
       const hasState = currentStates.includes(state);
