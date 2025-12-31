@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Check, Lock, Link, Globe, BookOpen, Bookmark, Pencil, X, User as UserIcon, Book, Archive, Eye, PenTool } from 'lucide-react';
 import { List, ListItem, Comic, ReadState } from '../types';
-import { getListById, getListItems, getProfile, Profile } from '../services/supabaseService';
+import { getListById, getListItems, getProfile, Profile, fetchComicById } from '../services/supabaseService';
 import Footer from './Footer';
 import ShareModal from './ShareModal';
 
@@ -48,6 +48,7 @@ const ListView: React.FC<ListViewProps> = ({
   const navigate = useNavigate();
   const [list, setList] = useState<List | null>(null);
   const [listItems, setListItems] = useState<ListItem[]>([]);
+  const [resolvedComics, setResolvedComics] = useState<Comic[]>([]);
   const [author, setAuthor] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -65,6 +66,19 @@ const ListView: React.FC<ListViewProps> = ({
       setList(listData);
       setListItems(itemsData);
 
+      // Resolve comics - check local first, then fetch from Supabase
+      const resolvedComicsList: Comic[] = [];
+      for (const item of itemsData) {
+        let comic = comics.find(c => c.id === item.comic_id);
+        if (!comic) {
+          comic = await fetchComicById(item.comic_id) || undefined;
+        }
+        if (comic) {
+          resolvedComicsList.push(comic);
+        }
+      }
+      setResolvedComics(resolvedComicsList);
+
       // Fetch author profile
       if (listData?.user_id) {
         const authorProfile = await getProfile(listData.user_id);
@@ -75,12 +89,10 @@ const ListView: React.FC<ListViewProps> = ({
     };
 
     loadList();
-  }, [id]);
+  }, [id, comics]);
 
-  // Get comics for this list
-  const listComics = listItems
-    .map(item => comics.find(c => c.id === item.comic_id))
-    .filter((c): c is Comic => c !== undefined);
+  // Use resolved comics for display
+  const listComics = resolvedComics;
 
   const isOwner = currentUserId && list?.user_id === currentUserId;
 
