@@ -75,7 +75,7 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'DC Vertigo',
     year: 2002,
     description: 'A mature reimagining of fairy tales through the lens of modern society.',
-    coverUrl: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1388185648i/21326.jpg',
+    coverUrl: 'https://static.dc.com/dc/files/default_images/fables_vol1_5b6373d0ac5743.10049180.jpg?w=640',
   },
   {
     id: 'starter-2',
@@ -85,7 +85,7 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'Marvel Comics',
     year: 2013,
     description: 'A fun, character-driven superhero story.',
-    coverUrl: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1352493818i/16002136.jpg',
+    coverUrl: 'https://m.media-amazon.com/images/I/91sz9VszkIL._SY522_.jpg',
   },
   {
     id: 'starter-3',
@@ -95,7 +95,7 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'DC Comics',
     year: 2017,
     description: 'A thoughtful sci-fi story using characters we grew up with.',
-    coverUrl: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1524589610i/36342885.jpg',
+    coverUrl: 'https://static.dc.com/dc/files/default_images/JETSONS_170-001_HD_5b8488b66da828.82577836.jpg?w=640',
   },
   {
     id: 'starter-4',
@@ -105,6 +105,6 @@ export const STARTER_PICKS: Comic[] = [
     publisher: 'Image Comics',
     year: 2014,
     description: 'A dark, unsettling horror story that lingers.',
-    coverUrl: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1425056771i/24823153.jpg',
+    coverUrl: 'https://imagecomics.com/files/releases/Wytches_Vol1-1.png',
   },
 ];
