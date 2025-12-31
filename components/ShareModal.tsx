@@ -36,7 +36,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
     ? 'A curated reading path created in Continuity.'
     : `${title} — tracked in Continuity.`;
 
-  const shareText = message.trim() || defaultMessage;
+  const shareText = message.trim();
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(shareUrl);
@@ -45,14 +45,19 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   const handleShareToX = () => {
-    const tweetText = encodeURIComponent(`${shareText}\n\n${shareUrl}`);
+    const tweetContent = shareText
+      ? `${shareText}\n\n${shareUrl}`
+      : shareUrl;
+    const tweetText = encodeURIComponent(tweetContent);
     window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
   };
 
   const handleShareViaMessages = async () => {
     // Combine message and URL into single text for reliable sharing
     // (navigator.share with separate url/text fields doesn't work reliably on macOS)
-    const fullShareText = `${shareText}\n\n${shareUrl}`;
+    const fullShareText = shareText
+      ? `${shareText}\n\n${shareUrl}`
+      : shareUrl;
 
     if (navigator.share) {
       try {
