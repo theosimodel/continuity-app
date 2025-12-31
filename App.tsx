@@ -15,7 +15,7 @@ import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, upsertComic, updateUserComic } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, upsertComic, updateUserComic, fetchUserComics } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
@@ -852,6 +852,8 @@ const AppContent: React.FC = () => {
         setProfile(userProfile);
         // Load user's lists
         loadUserLists(authUser.id);
+        // Load user's comics with read states
+        loadUserComicsData(authUser.id);
       } else {
         setProfile(null);
         setUserLists([]);
@@ -864,6 +866,39 @@ const AppContent: React.FC = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Load user's comics with read states, ratings, etc.
+  const loadUserComicsData = async (userId: string) => {
+    const userComicsMap = await fetchUserComics(userId);
+
+    // Fetch actual comic data for each user_comic
+    const comicsWithStates: Comic[] = [];
+    for (const [comicId, userData] of userComicsMap) {
+      const comic = await fetchComicById(comicId);
+      if (comic) {
+        comicsWithStates.push({
+          ...comic,
+          readStates: userData.readStates,
+          rating: userData.rating,
+        });
+      }
+    }
+
+    // Add to comics state, avoiding duplicates
+    setComics(prev => {
+      const existingIds = new Set(prev.map(c => c.id));
+      const newComics = comicsWithStates.filter(c => !existingIds.has(c.id));
+      // Update existing comics with read states
+      const updated = prev.map(c => {
+        const userData = userComicsMap.get(c.id);
+        if (userData) {
+          return { ...c, readStates: userData.readStates, rating: userData.rating };
+        }
+        return c;
+      });
+      return [...updated, ...newComics];
+    });
+  };
 
   // Load user's lists with item counts and preview comics
   const loadUserLists = async (userId: string) => {
