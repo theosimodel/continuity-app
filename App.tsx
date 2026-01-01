@@ -168,12 +168,13 @@ const ComicDetail: React.FC<{
   onLog: (comic: Comic, review: Partial<Review>) => void,
   onToggleReadState: (comic: Comic, state: ReadState) => void,
   onUpdateComic: (comic: Comic) => void,
+  onSaveRating?: (comic: Comic, rating: number) => void,
   userLists?: List[],
   onAddToList?: (listId: string, comic: Comic) => void,
   isSignedIn?: boolean,
   onShowCreateList?: () => void,
   isCanonEditor?: boolean
-}> = ({ comics, onLog, onToggleReadState, onUpdateComic, userLists = [], onAddToList, isSignedIn, onShowCreateList, isCanonEditor = false }) => {
+}> = ({ comics, onLog, onToggleReadState, onUpdateComic, onSaveRating, userLists = [], onAddToList, isSignedIn, onShowCreateList, isCanonEditor = false }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const comic = comics.find(c => c.id === id);
@@ -196,7 +197,7 @@ const ComicDetail: React.FC<{
 
   // Reset form state when navigating to a different comic
   useEffect(() => {
-    setRating(0);
+    setRating(comic?.rating || 0);
     setHoverRating(0);
     setReviewText('');
     setIsEditingCover(false);
@@ -713,7 +714,10 @@ const ComicDetail: React.FC<{
                         key={star}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(0)}
-                        onClick={() => setRating(star)}
+                        onClick={() => {
+                          setRating(star);
+                          if (comic && onSaveRating) onSaveRating(comic, star);
+                        }}
                         className="transition-all transform active:scale-90"
                       >
                         <Star
@@ -1077,12 +1081,16 @@ const AppContent: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const handleUpdateComic = (updatedComic: Comic) => {
+  const handleUpdateComic = async (updatedComic: Comic) => {
+    // Save to Supabase
+    await upsertComic(updatedComic);
+
+    // Update local state
     const update = (list: Comic[]) => list.map(c => c.id === updatedComic.id ? updatedComic : c);
     setComics(update(comics));
     setSearchResults(update(searchResults));
     setRecommendations(update(recommendations));
-    setJournal(prev => prev.map(entry => 
+    setJournal(prev => prev.map(entry =>
       entry.comic.id === updatedComic.id ? { ...entry, comic: updatedComic } : entry
     ));
   };
@@ -1150,6 +1158,24 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleSaveRating = async (comic: Comic, rating: number) => {
+    // Ensure comic exists in Supabase
+    await upsertComic(comic);
+
+    // Save rating to user_comics
+    if (user) {
+      await updateUserComic(user.id, comic.id, { rating });
+    }
+
+    // Update local state
+    const updateRating = (list: Comic[]) => list.map(c =>
+      c.id === comic.id ? { ...c, rating } : c
+    );
+    setComics(updateRating(comics));
+    setSearchResults(updateRating(searchResults));
+    setRecommendations(updateRating(recommendations));
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -1208,7 +1234,7 @@ const AppContent: React.FC = () => {
               document.getElementById('starter-picks')?.scrollIntoView({ behavior: 'smooth' });
             }
           }} />} />
-          <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} isCanonEditor={profile?.is_admin === true} />} />
+          <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} onSaveRating={handleSaveRating} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} isCanonEditor={profile?.is_admin === true} />} />
           <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/long-boxes" element={
