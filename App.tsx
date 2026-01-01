@@ -1197,16 +1197,22 @@ const AppContent: React.FC = () => {
 
       // Check Supabase for any existing comics (with admin edits)
       const ids = comicVineResults.map(c => c.id);
+      console.log('Search IDs:', ids);
       const supabaseComics = await fetchComicsByIds(ids);
+      console.log('Supabase comics found:', supabaseComics.size, Array.from(supabaseComics.keys()));
 
       // Merge: use Supabase data if available, otherwise ComicVine data
       const mergedResults = comicVineResults.map(comic => {
         const supabaseComic = supabaseComics.get(comic.id);
+        if (supabaseComic) {
+          console.log('Using Supabase version for:', comic.id);
+        }
         return supabaseComic || comic;
       });
 
       setSearchResults(mergedResults);
     } catch (err: any) {
+      console.error('Search error:', err);
       setSearchError("Search failed. Please try again.");
     } finally {
       setIsSearching(false);
