@@ -12,7 +12,7 @@ import ListView from './components/ListView';
 import ListCard from './components/ListCard';
 import ResetPassword from './components/ResetPassword';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
-import { Comic, JournalEntry, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
+import { Comic, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
 import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, upsertComic, updateUserComic, fetchUserComics } from './services/supabaseService';
@@ -792,7 +792,6 @@ const AppContent: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Comic[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [recommendations, setRecommendations] = useState<Comic[]>([]);
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -1090,9 +1089,6 @@ const AppContent: React.FC = () => {
     setComics(update(comics));
     setSearchResults(update(searchResults));
     setRecommendations(update(recommendations));
-    setJournal(prev => prev.map(entry =>
-      entry.comic.id === updatedComic.id ? { ...entry, comic: updatedComic } : entry
-    ));
   };
 
   const handleToggleReadState = async (comic: Comic, state: ReadState) => {
@@ -1123,9 +1119,6 @@ const AppContent: React.FC = () => {
     setSearchResults(updateList(searchResults));
     setRecommendations(updateList(recommendations));
     setStarterPicks(updateList(starterPicks));
-    setJournal(prev => prev.map(entry =>
-      entry.comic.id === comic.id ? { ...entry, comic: toggleState(entry.comic) } : entry
-    ));
   };
 
   const handleLogComic = async (comic: Comic, reviewData: Partial<Review>) => {
@@ -1141,18 +1134,7 @@ const AppContent: React.FC = () => {
       });
     }
 
-    const newEntry: JournalEntry = {
-      id: Date.now().toString(),
-      comicId: comic.id,
-      userId: user?.id || 'user-1',
-      rating: reviewData.rating || 0,
-      text: reviewData.text || '',
-      dateRead: new Date().toISOString().split('T')[0],
-      likes: 0,
-      containsSpoilers: false,
-      comic: comic
-    };
-    setJournal([newEntry, ...journal]);
+    // Add comic to local state if not already there
     if (!comics.find(c => c.id === comic.id)) {
       setComics(prev => [...prev, comic]);
     }
