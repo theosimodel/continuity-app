@@ -177,7 +177,13 @@ const ComicDetail: React.FC<{
 }> = ({ comics, onLog, onToggleReadState, onUpdateComic, onSaveRating, userLists = [], onAddToList, isSignedIn, onShowCreateList, isCanonEditor = false }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const comic = comics.find(c => c.id === id);
+  const localComic = comics.find(c => c.id === id);
+
+  const [fetchedComic, setFetchedComic] = useState<Comic | null>(null);
+  const [isLoadingComic, setIsLoadingComic] = useState(false);
+
+  // Use local comic if available, otherwise use fetched comic
+  const comic = localComic || fetchedComic;
 
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -194,6 +200,20 @@ const ComicDetail: React.FC<{
   const [editDescription, setEditDescription] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+
+  // Fetch comic from Supabase if not found locally
+  useEffect(() => {
+    // Reset fetched comic when id changes
+    setFetchedComic(null);
+
+    if (!localComic && id) {
+      setIsLoadingComic(true);
+      fetchComicById(id).then(result => {
+        setFetchedComic(result);
+        setIsLoadingComic(false);
+      });
+    }
+  }, [id, localComic]);
 
   // Reset form state when navigating to a different comic
   useEffect(() => {
@@ -328,6 +348,12 @@ const ComicDetail: React.FC<{
 
     return 'Availability varies by region and format.';
   };
+
+  if (isLoadingComic) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="animate-spin text-[#4FD1C5]" size={32} />
+    </div>
+  );
 
   if (!comic) return (
     <div className="flex flex-col items-center py-20 gap-4">
