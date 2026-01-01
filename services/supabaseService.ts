@@ -247,6 +247,31 @@ export const upsertComic = async (comic: Comic): Promise<Comic | null> => {
   return mapDbToComic(data);
 };
 
+// Only insert comic if it doesn't already exist (preserves admin edits)
+export const ensureComicExists = async (comic: Comic): Promise<void> => {
+  // Check if comic already exists
+  const { data } = await supabase
+    .from('comics')
+    .select('id')
+    .eq('id', comic.id)
+    .single();
+
+  // Only insert if it doesn't exist
+  if (!data) {
+    await supabase.from('comics').insert({
+      id: comic.id,
+      title: comic.title,
+      writer: comic.writer,
+      artist: comic.artist,
+      publisher: comic.publisher,
+      year: comic.year,
+      description: comic.description,
+      cover_url: comic.coverUrl,
+      where_to_read: comic.whereToRead,
+    });
+  }
+};
+
 // ============================================
 // USER COMICS (read states, ratings, reviews)
 // ============================================
@@ -280,21 +305,50 @@ export const updateUserComic = async (
   comicId: string,
   updates: Partial<UserComicData>
 ): Promise<boolean> => {
-  const { error } = await supabase
+  // First, check if record exists
+  const { data: existing } = await supabase
     .from('user_comics')
-    .upsert({
-      user_id: userId,
-      comic_id: comicId,
-      read_states: updates.readStates,
-      rating: updates.rating,
-      review: updates.review,
-      date_read: updates.dateRead,
-      updated_at: new Date().toISOString(),
-    });
+    .select('*')
+    .eq('user_id', userId)
+    .eq('comic_id', comicId)
+    .single();
 
-  if (error) {
-    console.error('Error updating user comic:', error);
-    return false;
+  if (existing) {
+    // UPDATE existing record
+    const { error } = await supabase
+      .from('user_comics')
+      .update({
+        read_states: updates.readStates ?? existing.read_states,
+        rating: updates.rating ?? existing.rating,
+        review: updates.review ?? existing.review,
+        date_read: updates.dateRead ?? existing.date_read,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('comic_id', comicId);
+
+    if (error) {
+      console.error('Error updating user comic:', error);
+      return false;
+    }
+  } else {
+    // INSERT new record
+    const { error } = await supabase
+      .from('user_comics')
+      .insert({
+        user_id: userId,
+        comic_id: comicId,
+        read_states: updates.readStates ?? [],
+        rating: updates.rating,
+        review: updates.review,
+        date_read: updates.dateRead,
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error('Error inserting user comic:', error);
+      return false;
+    }
   }
 
   return true;

@@ -240,15 +240,22 @@ const ListView: React.FC<ListViewProps> = ({
                     </span>
                     {isOwner && (
                       <button
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Delete clicked for comic:', comic.id, 'from list:', list?.id);
+                          console.log('onRemoveFromList exists:', !!onRemoveFromList);
                           if (list && onRemoveFromList) {
                             const success = await onRemoveFromList(list.id, comic.id);
+                            console.log('Remove result:', success);
                             if (success) {
+                              console.log('Updating local state...');
                               setListItems(prev => prev.filter(item => item.comic_id !== comic.id));
+                              setResolvedComics(prev => prev.filter(c => c.id !== comic.id));
                             }
                           }
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[#7C828D] hover:text-red-400 transition-all"
+                        className="p-1 text-[#7C828D] hover:text-red-400 transition-all"
                         title="Remove from list"
                       >
                         <X size={16} />

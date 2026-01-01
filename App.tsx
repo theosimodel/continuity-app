@@ -15,7 +15,7 @@ import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, fetchComicsByIds, upsertComic, updateUserComic, fetchUserComics } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, fetchComicsByIds, upsertComic, ensureComicExists, updateUserComic, fetchUserComics, fetchCuratedPicks } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
@@ -51,8 +51,9 @@ const Home: React.FC<{
   }, [comics, sortBy]);
 
   // Use starter picks until user has 3+ items in Continuity
-  const picksToShow = continuityCount < 3 ? starterPicks : recommendations;
-  const picksSubheader = continuityCount < 3
+  // Fall back to starter picks if recommendations are empty (e.g., API key missing)
+  const picksToShow = continuityCount < 3 || recommendations.length === 0 ? starterPicks : recommendations;
+  const picksSubheader = continuityCount < 3 || recommendations.length === 0
     ? "Hand-picked to start your Continuity"
     : "From your Continuity";
 
@@ -120,7 +121,7 @@ const Home: React.FC<{
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
-          {sortedComics.map(comic => (
+          {sortedComics.slice(0, 6).map(comic => (
             <ComicCard
               key={comic.id}
               comic={comic}
@@ -1025,7 +1026,8 @@ const AppContent: React.FC = () => {
 
   const handleAddToList = async (listId: string, comic: Comic) => {
     // First, ensure the comic exists in Supabase (for comics from search)
-    await upsertComic(comic);
+    // Uses ensureComicExists to preserve any admin edits
+    await ensureComicExists(comic);
 
     const item = await addComicToList(listId, comic.id);
     if (item) {
@@ -1106,6 +1108,17 @@ const AppContent: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // Load curated picks from Supabase (falls back to STARTER_PICKS constant if empty)
+  useEffect(() => {
+    const loadCuratedPicks = async () => {
+      const picks = await fetchCuratedPicks('starter');
+      if (picks.length > 0) {
+        setStarterPicks(picks);
+      }
+    };
+    loadCuratedPicks();
+  }, []);
+
   const handleUpdateComic = async (updatedComic: Comic) => {
     // Save to Supabase
     await upsertComic(updatedComic);
@@ -1119,7 +1132,8 @@ const AppContent: React.FC = () => {
 
   const handleToggleReadState = async (comic: Comic, state: ReadState) => {
     // Ensure comic exists in Supabase (for comics from search)
-    await upsertComic(comic);
+    // Uses ensureComicExists to preserve any admin edits
+    await ensureComicExists(comic);
 
     const currentStates = comic.readStates || [];
     const hasState = currentStates.includes(state);
@@ -1149,7 +1163,8 @@ const AppContent: React.FC = () => {
 
   const handleLogComic = async (comic: Comic, reviewData: Partial<Review>) => {
     // Ensure comic exists in Supabase
-    await upsertComic(comic);
+    // Uses ensureComicExists to preserve any admin edits
+    await ensureComicExists(comic);
 
     // Save rating/review to user_comics
     if (user) {
@@ -1167,12 +1182,18 @@ const AppContent: React.FC = () => {
   };
 
   const handleSaveRating = async (comic: Comic, rating: number) => {
+    console.log('handleSaveRating called:', { comicId: comic.id, rating, userId: user?.id });
+
     // Ensure comic exists in Supabase
-    await upsertComic(comic);
+    // Uses ensureComicExists to preserve any admin edits
+    await ensureComicExists(comic);
 
     // Save rating to user_comics
     if (user) {
-      await updateUserComic(user.id, comic.id, { rating });
+      const success = await updateUserComic(user.id, comic.id, { rating });
+      console.log('updateUserComic result:', success);
+    } else {
+      console.log('No user logged in, cannot save rating');
     }
 
     // Update local state
@@ -1197,17 +1218,32 @@ const AppContent: React.FC = () => {
 
       // Check Supabase for any existing comics (with admin edits)
       const ids = comicVineResults.map(c => c.id);
-      console.log('Search IDs:', ids);
       const supabaseComics = await fetchComicsByIds(ids);
-      console.log('Supabase comics found:', supabaseComics.size, Array.from(supabaseComics.keys()));
 
-      // Merge: use Supabase data if available, otherwise ComicVine data
+      // Also get user's comic data (ratings, read states) if logged in
+      let userComicsData = new Map<string, { readStates: ReadState[]; rating?: number }>();
+      if (user) {
+        const allUserComics = await fetchUserComics(user.id);
+        // Filter to just the comics in our search results
+        ids.forEach(id => {
+          const userData = allUserComics.get(id);
+          if (userData) {
+            userComicsData.set(id, { readStates: userData.readStates, rating: userData.rating });
+          }
+        });
+      }
+
+      // Merge: use Supabase data if available, then overlay user's personal data
       const mergedResults = comicVineResults.map(comic => {
         const supabaseComic = supabaseComics.get(comic.id);
-        if (supabaseComic) {
-          console.log('Using Supabase version for:', comic.id);
+        const userData = userComicsData.get(comic.id);
+        const baseComic = supabaseComic || comic;
+
+        // Overlay user's personal data (ratings, read states)
+        if (userData) {
+          return { ...baseComic, readStates: userData.readStates, rating: userData.rating };
         }
-        return supabaseComic || comic;
+        return baseComic;
       });
 
       setSearchResults(mergedResults);
