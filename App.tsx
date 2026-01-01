@@ -15,7 +15,7 @@ import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
 import { searchComics as searchComicVine } from './services/comicVineService';
-import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, upsertComic, updateUserComic, fetchUserComics } from './services/supabaseService';
+import { onAuthStateChange, signOut, getProfile, updateProfile, Profile, getUserLists, getListItems, createList, addComicToList, updateList, deleteList, removeComicFromList, getContinuityCount, fetchComicById, fetchComicsByIds, upsertComic, updateUserComic, fetchUserComics } from './services/supabaseService';
 import {
   Search, TrendingUp, Calendar, LayoutGrid, Heart, BookOpen, Clock,
   Loader2, Sparkles, Star, Share2, ExternalLink, X,
@@ -1192,8 +1192,20 @@ const AppContent: React.FC = () => {
     setIsSearching(true);
 
     try {
-      const results = await searchComicVine(searchQuery);
-      setSearchResults(results);
+      // Get results from ComicVine
+      const comicVineResults = await searchComicVine(searchQuery);
+
+      // Check Supabase for any existing comics (with admin edits)
+      const ids = comicVineResults.map(c => c.id);
+      const supabaseComics = await fetchComicsByIds(ids);
+
+      // Merge: use Supabase data if available, otherwise ComicVine data
+      const mergedResults = comicVineResults.map(comic => {
+        const supabaseComic = supabaseComics.get(comic.id);
+        return supabaseComic || comic;
+      });
+
+      setSearchResults(mergedResults);
     } catch (err: any) {
       setSearchError("Search failed. Please try again.");
     } finally {

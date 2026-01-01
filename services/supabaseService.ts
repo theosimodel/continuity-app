@@ -202,6 +202,26 @@ export const fetchComicById = async (id: string): Promise<Comic | null> => {
   return mapDbToComic(data);
 };
 
+export const fetchComicsByIds = async (ids: string[]): Promise<Map<string, Comic>> => {
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from('comics')
+    .select('*')
+    .in('id', ids);
+
+  if (error) {
+    console.error('Error fetching comics by IDs:', error);
+    return new Map();
+  }
+
+  const map = new Map<string, Comic>();
+  data.forEach(row => {
+    map.set(row.id, mapDbToComic(row));
+  });
+  return map;
+};
+
 export const upsertComic = async (comic: Comic): Promise<Comic | null> => {
   const { data, error } = await supabase
     .from('comics')
