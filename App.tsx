@@ -802,6 +802,7 @@ const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoadingUserComics, setIsLoadingUserComics] = useState(false);
 
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -869,35 +870,40 @@ const AppContent: React.FC = () => {
 
   // Load user's comics with read states, ratings, etc.
   const loadUserComicsData = async (userId: string) => {
-    const userComicsMap = await fetchUserComics(userId);
+    setIsLoadingUserComics(true);
+    try {
+      const userComicsMap = await fetchUserComics(userId);
 
-    // Fetch actual comic data for each user_comic
-    const comicsWithStates: Comic[] = [];
-    for (const [comicId, userData] of userComicsMap) {
-      const comic = await fetchComicById(comicId);
-      if (comic) {
-        comicsWithStates.push({
-          ...comic,
-          readStates: userData.readStates,
-          rating: userData.rating,
-        });
-      }
-    }
-
-    // Add to comics state, avoiding duplicates
-    setComics(prev => {
-      const existingIds = new Set(prev.map(c => c.id));
-      const newComics = comicsWithStates.filter(c => !existingIds.has(c.id));
-      // Update existing comics with read states
-      const updated = prev.map(c => {
-        const userData = userComicsMap.get(c.id);
-        if (userData) {
-          return { ...c, readStates: userData.readStates, rating: userData.rating };
+      // Fetch actual comic data for each user_comic
+      const comicsWithStates: Comic[] = [];
+      for (const [comicId, userData] of userComicsMap) {
+        const comic = await fetchComicById(comicId);
+        if (comic) {
+          comicsWithStates.push({
+            ...comic,
+            readStates: userData.readStates,
+            rating: userData.rating,
+          });
         }
-        return c;
+      }
+
+      // Add to comics state, avoiding duplicates
+      setComics(prev => {
+        const existingIds = new Set(prev.map(c => c.id));
+        const newComics = comicsWithStates.filter(c => !existingIds.has(c.id));
+        // Update existing comics with read states
+        const updated = prev.map(c => {
+          const userData = userComicsMap.get(c.id);
+          if (userData) {
+            return { ...c, readStates: userData.readStates, rating: userData.rating };
+          }
+          return c;
+        });
+        return [...updated, ...newComics];
       });
-      return [...updated, ...newComics];
-    });
+    } finally {
+      setIsLoadingUserComics(false);
+    }
   };
 
   // Load user's lists with item counts and preview comics
@@ -1335,7 +1341,12 @@ const AppContent: React.FC = () => {
               </div>
 
               <div className="border-t border-[#1E232B] pt-8">
-                {continuityComics.length === 0 ? (
+                {isLoadingUserComics ? (
+                  /* Loading State */
+                  <div className="py-16 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-[#4FD1C5]" size={32} />
+                  </div>
+                ) : continuityComics.length === 0 ? (
                   /* Zero State */
                   <div className="py-16 space-y-4">
                     <p className="text-white text-xl">Your Continuity hasn't begun yet.</p>
