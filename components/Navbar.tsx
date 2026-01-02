@@ -36,8 +36,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage, userSigil }) =>
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => onNavigate('home')}
         >
-          <div className="bg-white w-8 h-8 rounded flex items-center justify-center">
-            <span className="text-[#0E1116] text-xl font-bold font-space">C</span>
+          <div className="bg-[#0b0d10] w-8 h-8 rounded-md flex items-center justify-center border border-[#1E232B]">
+            <span className="text-[#7ee0d6] text-xl font-bold font-space">C</span>
           </div>
           <h1 className="text-white text-2xl font-space font-semibold group-hover:text-[#4FD1C5] transition-colors">Continuity</h1>
         </div>
