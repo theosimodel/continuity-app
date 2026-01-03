@@ -85,12 +85,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   const revealClass = (show: boolean) =>
     `transition-all duration-[1500ms] ease-out ${
       show
-        ? 'opacity-100 max-h-[200px] my-3 translate-y-0'
+        ? 'opacity-100 max-h-[200px] my-1 sm:my-3 translate-y-0'
         : 'opacity-0 max-h-0 my-0 translate-y-[15px] overflow-hidden'
     }`;
 
   return (
-    <div className="min-h-screen bg-[#0b0d10] flex flex-col items-center justify-center py-16 px-5 relative">
+    <div className="min-h-screen bg-[#0b0d10] flex flex-col items-center justify-center py-4 sm:py-16 px-5 relative">
       {/* Ambient dot texture */}
       <div
         className="fixed inset-0 pointer-events-none"
@@ -135,7 +135,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
 
         {/* Line 3 - Features intro */}
-        <div className={`${revealClass(showLine3)} mt-8`}>
+        <div className={`${revealClass(showLine3)} mt-4 sm:mt-8`}>
           <h3
             className="font-semibold tracking-[-0.01em] text-white"
             style={{
@@ -149,8 +149,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
 
         {/* Feature 1 */}
         <div className={revealClass(showFeature1)}>
-          <p className="text-[1.1rem] text-[#b8bcc6] leading-[1.6]">
-            <span className="text-[1.25rem] text-white font-medium block mt-2">
+          <p className="text-[0.95rem] sm:text-[1.1rem] text-[#b8bcc6] leading-[1.4] sm:leading-[1.6]">
+            <span className="text-[1.1rem] sm:text-[1.25rem] text-white font-medium block">
               📖 Remember every comic you've read
             </span>
             <span className="text-[#b8bcc6]">— from your first issue to now</span>
@@ -159,8 +159,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
 
         {/* Feature 2 */}
         <div className={revealClass(showFeature2)}>
-          <p className="text-[1.1rem] text-[#b8bcc6] leading-[1.6]">
-            <span className="text-[1.25rem] text-white font-medium block mt-2">
+          <p className="text-[0.95rem] sm:text-[1.1rem] text-[#b8bcc6] leading-[1.4] sm:leading-[1.6]">
+            <span className="text-[1.1rem] sm:text-[1.25rem] text-white font-medium block">
               ⭐ Mark what you want to read, own, or return to
             </span>
           </p>
@@ -168,8 +168,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
 
         {/* Feature 3 */}
         <div className={revealClass(showFeature3)}>
-          <p className="text-[1.1rem] text-[#b8bcc6] leading-[1.6]">
-            <span className="text-[1.25rem] text-white font-medium block mt-2">
+          <p className="text-[0.95rem] sm:text-[1.1rem] text-[#b8bcc6] leading-[1.4] sm:leading-[1.6]">
+            <span className="text-[1.1rem] sm:text-[1.25rem] text-white font-medium block">
               ✍️ Write notes for yourself
             </span>
             <span className="text-[#b8bcc6]">— not ratings for engagement</span>
@@ -178,8 +178,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
 
         {/* Feature 4 */}
         <div className={revealClass(showFeature4)}>
-          <p className="text-[1.1rem] text-[#b8bcc6] leading-[1.6]">
-            <span className="text-[1.25rem] text-white font-medium block mt-2">
+          <p className="text-[0.95rem] sm:text-[1.1rem] text-[#b8bcc6] leading-[1.4] sm:leading-[1.6]">
+            <span className="text-[1.1rem] sm:text-[1.25rem] text-white font-medium block">
               🗂 Curate and share reading paths
             </span>
             <span className="text-[#b8bcc6]">by creator, theme, era, or mood</span>
@@ -188,8 +188,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
 
         {/* Feature 5 */}
         <div className={revealClass(showFeature5)}>
-          <p className="text-[1.1rem] text-[#b8bcc6] leading-[1.6]">
-            <span className="text-[1.25rem] text-white font-medium block mt-2">
+          <p className="text-[0.95rem] sm:text-[1.1rem] text-[#b8bcc6] leading-[1.4] sm:leading-[1.6]">
+            <span className="text-[1.1rem] sm:text-[1.25rem] text-white font-medium block">
               🧠 Treat your reading history as canon
             </span>
             <span className="text-[#b8bcc6]">— not content, not competition</span>
@@ -197,7 +197,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
 
         {/* CTA Button */}
-        <div className={`${revealClass(showCta)} mt-4`}>
+        <div className={`${revealClass(showCta)} mt-2 sm:mt-4`}>
           <button
             onClick={onStart}
             disabled={!showCta}
