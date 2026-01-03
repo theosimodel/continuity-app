@@ -11,6 +11,7 @@ import CreateListModal from './components/CreateListModal';
 import ListView from './components/ListView';
 import ListCard from './components/ListCard';
 import ResetPassword from './components/ResetPassword';
+import ComicDetailV2 from './components/ComicDetailV2';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
@@ -1296,7 +1297,7 @@ const AppContent: React.FC = () => {
               document.getElementById('starter-picks')?.scrollIntoView({ behavior: 'smooth' });
             }
           }} />} />
-          <Route path="/comic/:id" element={<ComicDetail comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} onSaveRating={handleSaveRating} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} isCanonEditor={profile?.is_admin === true} />} />
+          <Route path="/comic/:id" element={<ComicDetailV2 comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} onSaveRating={handleSaveRating} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} />} />
           <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/long-boxes" element={
