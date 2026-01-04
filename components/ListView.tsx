@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Share2, Check, Lock, Link, Globe, BookOpen, Bookmark, Pencil, X, User as UserIcon, Book, Archive, Eye, PenTool } from 'lucide-react';
+import { ArrowLeft, Share2, Check, Lock, Link, Globe, BookOpen, Bookmark, Pencil, X, User as UserIcon, Book, Archive, Eye, PenTool, Plus } from 'lucide-react';
 import { List, ListItem, Comic, ReadState } from '../types';
-import { getListById, getListItems, getProfile, Profile, fetchComicById } from '../services/supabaseService';
+import { getListById, getListItems, getProfile, Profile, fetchComicById, forkList } from '../services/supabaseService';
 import Footer from './Footer';
 import ShareModal from './ShareModal';
 
@@ -14,6 +14,7 @@ interface ListViewProps {
   onStartContinuity: () => void;
   onEditList?: (list: List) => void;
   onRemoveFromList?: (listId: string, comicId: string) => Promise<boolean>;
+  onListForked?: (newList: List) => void;
 }
 
 // Avatar sigils - marks of readership
@@ -43,11 +44,14 @@ const ListView: React.FC<ListViewProps> = ({
   onStartContinuity,
   onEditList,
   onRemoveFromList,
+  onListForked,
 }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [list, setList] = useState<List | null>(null);
   const [listItems, setListItems] = useState<ListItem[]>([]);
+  const [isForking, setIsForking] = useState(false);
+  const [forkSuccess, setForkSuccess] = useState(false);
   const [resolvedComics, setResolvedComics] = useState<Comic[]>([]);
   const [author, setAuthor] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +99,23 @@ const ListView: React.FC<ListViewProps> = ({
   const listComics = resolvedComics;
 
   const isOwner = currentUserId && list?.user_id === currentUserId;
+
+  const handleForkList = async () => {
+    if (!currentUserId || !list) return;
+
+    setIsForking(true);
+    const newList = await forkList(list.id, currentUserId);
+    setIsForking(false);
+
+    if (newList) {
+      setForkSuccess(true);
+      onListForked?.(newList);
+      // Navigate to the user's new copy after a brief delay
+      setTimeout(() => {
+        navigate(`/list/${newList.id}`);
+      }, 1500);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -146,10 +167,9 @@ const ListView: React.FC<ListViewProps> = ({
               <div className="w-10 h-10 rounded-full bg-[#161A21] border border-[#1E232B] flex items-center justify-center">
                 {renderSigil(author?.avatar_url, 18)}
               </div>
-              <div>
-                <p className="text-white text-sm font-medium">{author?.username || 'A reader'}</p>
-                <p className="text-[#7C828D] text-xs">Creator</p>
-              </div>
+              <p className="text-[#7C828D] text-sm">
+                Curated by <span className="text-white">{author?.username || 'a reader'}</span>
+              </p>
             </div>
           </div>
 
@@ -168,6 +188,35 @@ const ListView: React.FC<ListViewProps> = ({
                   Edit
                 </button>
               </>
+            )}
+            {/* Add to My Continuity - for non-owners */}
+            {!isOwner && (
+              <button
+                onClick={isSignedIn ? handleForkList : onStartContinuity}
+                disabled={isForking || forkSuccess}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  forkSuccess
+                    ? 'bg-[#4FD1C5] text-black'
+                    : 'bg-[#4FD1C5] hover:bg-[#3DBCB0] text-black'
+                } disabled:opacity-70`}
+              >
+                {forkSuccess ? (
+                  <>
+                    <Check size={16} />
+                    Added
+                  </>
+                ) : isForking ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    Add to My Continuity
+                  </>
+                )}
+              </button>
             )}
             {(list.visibility !== 'private' || isOwner) && (
               <button

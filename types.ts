@@ -58,6 +58,10 @@ export interface List {
   visibility: ListVisibility;
   created_at: string;
   updated_at: string;
+  // Fork attribution
+  forked_from_list_id?: string;
+  original_curator_id?: string;
+  original_curator_username?: string;
 }
 
 export interface ListItem {

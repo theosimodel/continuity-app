@@ -605,6 +605,69 @@ export const getListItemCount = async (listId: string): Promise<number> => {
   return count || 0;
 };
 
+/**
+ * Fork a list to a new user's account.
+ * Creates a copy with attribution to the original curator.
+ * Per share-list.md: saved copies become independent but retain attribution.
+ */
+export const forkList = async (
+  originalListId: string,
+  newUserId: string
+): Promise<List | null> => {
+  // Get the original list
+  const originalList = await getListById(originalListId);
+  if (!originalList) {
+    console.error('Original list not found');
+    return null;
+  }
+
+  // Get the original curator's profile for attribution
+  const originalCurator = await getProfile(originalList.user_id);
+
+  // Get all items from the original list
+  const originalItems = await getListItems(originalListId);
+
+  // Create the new list with attribution
+  const { data: newList, error: listError } = await supabase
+    .from('lists')
+    .insert({
+      user_id: newUserId,
+      title: originalList.title,
+      description: originalList.description,
+      visibility: 'private', // Saved lists start as private
+      forked_from_list_id: originalListId,
+      original_curator_id: originalList.user_id,
+      original_curator_username: originalCurator?.username || null,
+    })
+    .select()
+    .single();
+
+  if (listError || !newList) {
+    console.error('Error creating forked list:', listError);
+    return null;
+  }
+
+  // Copy all list items to the new list
+  if (originalItems.length > 0) {
+    const newItems = originalItems.map((item, index) => ({
+      list_id: newList.id,
+      comic_id: item.comic_id,
+      sort_order: index,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('list_items')
+      .insert(newItems);
+
+    if (itemsError) {
+      console.error('Error copying list items:', itemsError);
+      // List was created but items failed - still return the list
+    }
+  }
+
+  return newList;
+};
+
 // ============================================
 // METRICS
 // ============================================

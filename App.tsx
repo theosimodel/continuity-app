@@ -1095,6 +1095,17 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Handler for when a user forks/saves someone else's list
+  const handleListForked = (newList: List) => {
+    setUserLists(prev => [newList, ...prev]);
+    // The forked list has the same comics as the original
+    // We'll need to fetch the count and comics, or pass them from ListView
+    // For now, trigger a reload of the list data
+    if (user) {
+      loadUserLists(user.id);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const fetchRecs = async () => {
@@ -1298,7 +1309,7 @@ const AppContent: React.FC = () => {
             }
           }} />} />
           <Route path="/comic/:id" element={<ComicDetailV2 comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} onSaveRating={handleSaveRating} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} />} />
-          <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} />} />
+          <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} onListForked={handleListForked} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/long-boxes" element={
             <div className="max-w-5xl mx-auto py-8">
