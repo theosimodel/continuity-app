@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Share2, Check, Lock, Link, Globe, BookOpen, Bookmark, Pencil, X, User as UserIcon, Book, Archive, Eye, PenTool, Plus } from 'lucide-react';
+import { ArrowLeft, Share2, Check, Lock, Link, Globe, BookOpen, Bookmark, Pencil, X, User as UserIcon, Book, Archive, Eye, PenTool, Plus, Copy, Bell } from 'lucide-react';
 import { List, ListItem, Comic, ReadState } from '../types';
 import { getListById, getListItems, getProfile, Profile, fetchComicById, forkList } from '../services/supabaseService';
 import Footer from './Footer';
@@ -56,6 +56,7 @@ const ListView: React.FC<ListViewProps> = ({
   const [author, setAuthor] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     const loadList = async () => {
@@ -100,9 +101,10 @@ const ListView: React.FC<ListViewProps> = ({
 
   const isOwner = currentUserId && list?.user_id === currentUserId;
 
-  const handleForkList = async () => {
+  const handleForkList = async (editAfter: boolean = false) => {
     if (!currentUserId || !list) return;
 
+    setShowAddModal(false);
     setIsForking(true);
     const newList = await forkList(list.id, currentUserId);
     setIsForking(false);
@@ -113,7 +115,11 @@ const ListView: React.FC<ListViewProps> = ({
       // Navigate to the user's new copy after a brief delay
       setTimeout(() => {
         navigate(`/list/${newList.id}`);
-      }, 1500);
+        // If edit mode requested, trigger edit after navigation
+        if (editAfter && onEditList) {
+          setTimeout(() => onEditList(newList), 100);
+        }
+      }, 1000);
     }
   };
 
@@ -189,10 +195,10 @@ const ListView: React.FC<ListViewProps> = ({
                 </button>
               </>
             )}
-            {/* Add to My Continuity - for non-owners */}
+            {/* Add to My Lists - for non-owners */}
             {!isOwner && (
               <button
-                onClick={isSignedIn ? handleForkList : onStartContinuity}
+                onClick={isSignedIn ? () => setShowAddModal(true) : onStartContinuity}
                 disabled={isForking || forkSuccess}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   forkSuccess
@@ -377,6 +383,83 @@ const ListView: React.FC<ListViewProps> = ({
         listAuthorName={author?.username}
         listCoverUrls={listComics.slice(0, 3).map(c => c.coverUrl)}
       />
+
+      {/* Add to My Lists Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#161A21] rounded-2xl w-full max-w-md border border-[#1E232B] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-[#1E232B]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">
+                  Add "{list.title}" to your lists
+                </h2>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-1 text-[#7C828D] hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Options */}
+            <div className="p-4 space-y-2">
+              {/* Add as-is */}
+              <button
+                onClick={() => handleForkList(false)}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-[#1E232B] hover:bg-[#2A303C] transition-colors text-left group"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#4FD1C5]/10 flex items-center justify-center flex-shrink-0">
+                  <Plus size={20} className="text-[#4FD1C5]" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">Add as-is</p>
+                  <p className="text-[#7C828D] text-sm">Save this list exactly as curated</p>
+                </div>
+              </button>
+
+              {/* Copy and edit */}
+              <button
+                onClick={() => handleForkList(true)}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-[#1E232B] hover:bg-[#2A303C] transition-colors text-left group"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#7C828D]/10 flex items-center justify-center flex-shrink-0">
+                  <Copy size={20} className="text-[#7C828D]" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">Copy and edit</p>
+                  <p className="text-[#7C828D] text-sm">Make your own version to customize</p>
+                </div>
+              </button>
+
+              {/* Follow curator updates - disabled for v1 */}
+              <button
+                disabled
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-[#1E232B]/50 text-left opacity-50 cursor-not-allowed"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#7C828D]/10 flex items-center justify-center flex-shrink-0">
+                  <Bell size={20} className="text-[#7C828D]" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">Follow curator updates</p>
+                  <p className="text-[#7C828D] text-sm">Coming soon</p>
+                </div>
+              </button>
+            </div>
+
+            {/* Cancel */}
+            <div className="p-4 border-t border-[#1E232B]">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="w-full py-3 text-[#7C828D] hover:text-white text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
