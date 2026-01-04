@@ -213,7 +213,7 @@ const ListView: React.FC<ListViewProps> = ({
                 ) : (
                   <>
                     <Plus size={16} />
-                    Add to My Continuity
+                    Add to My Lists
                   </>
                 )}
               </button>
