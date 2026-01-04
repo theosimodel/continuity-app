@@ -173,9 +173,17 @@ const ListView: React.FC<ListViewProps> = ({
               <div className="w-10 h-10 rounded-full bg-[#161A21] border border-[#1E232B] flex items-center justify-center">
                 {renderSigil(author?.avatar_url, 18)}
               </div>
-              <p className="text-[#7C828D] text-sm">
-                Curated by <span className="text-white">{author?.username || 'a reader'}</span>
-              </p>
+              <div>
+                <p className="text-[#7C828D] text-sm">
+                  Curated by <span className="text-white">{author?.username || 'a reader'}</span>
+                </p>
+                {/* Attribution for forked lists */}
+                {list.original_curator_username && list.original_curator_username !== author?.username && (
+                  <p className="text-[#4A4F57] text-xs mt-1">
+                    Originally curated by {list.original_curator_username}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
