@@ -875,6 +875,36 @@ const AppContent: React.FC = () => {
     localStorage.setItem('continuity-welcomed', 'true');
   };
 
+  // Handle Supabase auth recovery tokens (for password reset with HashRouter)
+  useEffect(() => {
+    const handleRecoveryToken = async () => {
+      // With HashRouter, Supabase tokens appear in the hash
+      // URL looks like: /#access_token=xxx&refresh_token=yyy&type=recovery
+      const hash = window.location.hash;
+
+      if (hash.includes('access_token') && hash.includes('type=recovery')) {
+        // Parse tokens from hash
+        const params = new URLSearchParams(hash.replace('#', ''));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          // Set the session with the tokens
+          const { supabase } = await import('./services/supabaseService');
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          // Clean the URL and navigate to reset password
+          window.location.hash = '/reset-password';
+        }
+      }
+    };
+
+    handleRecoveryToken();
+  }, []);
+
   // Auth state listener
   useEffect(() => {
     const { data: { subscription } } = onAuthStateChange(async (authUser) => {
