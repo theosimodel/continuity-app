@@ -879,25 +879,32 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handleRecoveryToken = async () => {
       // With HashRouter, Supabase tokens appear in the hash
-      // URL looks like: /#access_token=xxx&refresh_token=yyy&type=recovery
+      // URL looks like: #/reset-password#access_token=xxx&refresh_token=yyy&type=recovery
       const hash = window.location.hash;
 
       if (hash.includes('access_token') && hash.includes('type=recovery')) {
-        // Parse tokens from hash
-        const params = new URLSearchParams(hash.replace('#', ''));
+        // Parse tokens from the hash - handle double hash from HashRouter
+        // Split on # and get the last part which contains the tokens
+        const parts = hash.split('#');
+        const tokenPart = parts.find(p => p.includes('access_token')) || '';
+        const params = new URLSearchParams(tokenPart);
         const accessToken = params.get('access_token');
         const refreshToken = params.get('refresh_token');
 
         if (accessToken && refreshToken) {
           // Set the session with the tokens
           const { supabase } = await import('./services/supabaseService');
-          await supabase.auth.setSession({
+          const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
 
-          // Clean the URL and navigate to reset password
-          window.location.hash = '/reset-password';
+          if (!error) {
+            // Clean the URL and navigate to reset password
+            window.location.hash = '/reset-password';
+          } else {
+            console.error('Failed to set session:', error);
+          }
         }
       }
     };
