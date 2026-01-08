@@ -1442,6 +1442,14 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Auth gate: redirect unauthenticated users to welcome page
+  const publicRoutes = ['/welcome', '/privacy', '/terms', '/about', '/reset-password'];
+  const isPublicRoute = publicRoutes.some(route => currentPath.startsWith(route));
+  if (!user && !isPublicRoute) {
+    navigate('/welcome');
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-[#0E1116] flex flex-col">
       <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
