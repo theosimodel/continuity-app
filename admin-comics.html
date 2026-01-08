@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continuity - Comic Editor</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0E1116;
+            color: #B3B8C2;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #7C828D;
+            margin-bottom: 2rem;
+        }
+        .config-section {
+            background: #161A21;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid #1E232B;
+        }
+        .config-section h2 {
+            color: #fff;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .config-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+        }
+        label {
+            display: block;
+            color: #7C828D;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        input, textarea, select {
+            width: 100%;
+            background: #0E1116;
+            border: 1px solid #1E232B;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: #fff;
+            font-size: 0.875rem;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #4FD1C5;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #4FD1C5;
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #38B2AC;
+        }
+        button:disabled {
+            background: #1E232B;
+            color: #7C828D;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #1E232B;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #2A303C;
+        }
+        .btn-add {
+            background: #8B5CF6;
+        }
+        .btn-add:hover {
+            background: #7C3AED;
+        }
+        .btn-danger {
+            background: #EF4444;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #DC2626;
+        }
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+        .search-section {
+            margin-bottom: 1.5rem;
+        }
+        .search-input {
+            max-width: 400px;
+        }
+        .search-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .search-row .field-group {
+            flex: 1;
+            max-width: 400px;
+        }
+        .comics-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .comic-card {
+            background: #161A21;
+            border: 1px solid #1E232B;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 1.5rem;
+        }
+        .comic-card.editing {
+            border-color: #4FD1C5;
+        }
+        .comic-card.new-comic {
+            border-color: #8B5CF6;
+            background: #1a1625;
+        }
+        .comic-card.pick-card {
+            border-color: #F59E0B;
+            background: #1a1812;
+        }
+        .comic-cover {
+            width: 80px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #1E232B;
+        }
+        .comic-info h3 {
+            color: #fff;
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .comic-meta {
+            color: #7C828D;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        .comic-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .comic-fields .full-width {
+            grid-column: 1 / -1;
+        }
+        .field-group {
+            margin-bottom: 0;
+        }
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .status {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .status.success {
+            display: block;
+            background: rgba(79, 209, 197, 0.1);
+            color: #4FD1C5;
+            border: 1px solid #4FD1C5;
+        }
+        .status.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+            border: 1px solid #EF4444;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #7C828D;
+        }
+        .empty {
+            text-align: center;
+            padding: 3rem;
+            color: #7C828D;
+        }
+        .stats {
+            color: #7C828D;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        .connected-badge {
+            display: inline-block;
+            background: rgba(79, 209, 197, 0.1);
+            color: #4FD1C5;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #1E232B;
+            padding-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px 8px 0 0;
+            background: transparent;
+            color: #7C828D;
+            font-weight: 500;
+        }
+        .tab.active {
+            background: #1E232B;
+            color: #fff;
+        }
+        .tab:hover:not(.active) {
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .search-results {
+            margin-top: 1.5rem;
+        }
+        .result-badge {
+            display: inline-block;
+            background: rgba(139, 92, 246, 0.1);
+            color: #8B5CF6;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+        .in-db-badge {
+            background: rgba(79, 209, 197, 0.1);
+            color: #4FD1C5;
+        }
+        .pick-badge {
+            background: rgba(245, 158, 11, 0.1);
+            color: #F59E0B;
+        }
+        .picks-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .pick-slot {
+            background: #161A21;
+            border: 2px dashed #1E232B;
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .pick-slot.filled {
+            border-style: solid;
+            border-color: #F59E0B;
+        }
+        .pick-slot img {
+            width: 100%;
+            max-width: 120px;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+        .pick-slot h4 {
+            color: #fff;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+        }
+        .pick-slot p {
+            color: #7C828D;
+            font-size: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .pick-slot .slot-number {
+            color: #F59E0B;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .pick-slot .empty-text {
+            color: #7C828D;
+            font-size: 0.75rem;
+        }
+        .picks-search {
+            background: #161A21;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #1E232B;
+        }
+        .picks-search h3 {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        .picks-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .picks-result-card {
+            background: #0E1116;
+            border: 1px solid #1E232B;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .picks-result-card img {
+            width: 50px;
+            height: 75px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .picks-result-card .info {
+            flex: 1;
+            min-width: 0;
+        }
+        .picks-result-card h4 {
+            color: #fff;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .picks-result-card p {
+            color: #7C828D;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Comic Editor <span id="connected-badge" class="connected-badge" style="display:none;">Connected</span></h1>
+    <p class="subtitle">Search ComicVine, manage your database, and curate homepage Picks</p>
+
+    <div class="config-section">
+        <h2>Connection Settings</h2>
+        <div class="config-grid-3">
+            <div class="field-group">
+                <label>Supabase URL</label>
+                <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
+            </div>
+            <div class="field-group">
+                <label>Supabase Anon Key</label>
+                <input type="password" id="supabase-key" placeholder="your-anon-key">
+            </div>
+            <div class="field-group">
+                <label>ComicVine API Key</label>
+                <input type="password" id="comicvine-key" placeholder="your-comicvine-api-key">
+            </div>
+        </div>
+        <div class="actions">
+            <button onclick="connect()">Connect</button>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div id="main-container" style="display:none;">
+        <div class="tabs">
+            <button class="tab" onclick="switchTab('picks')">Picks (4)</button>
+            <button class="tab active" onclick="switchTab('search')">Search ComicVine</button>
+            <button class="tab" onclick="switchTab('database')">Database (<span id="comic-count">0</span>)</button>
+        </div>
+
+        <!-- Picks Tab -->
+        <div id="tab-picks" class="tab-content">
+            <p class="stats">These 4 comics appear on the homepage as "Picks" for new users</p>
+
+            <div class="picks-grid" id="picks-grid">
+                <!-- Filled dynamically -->
+            </div>
+
+            <div class="picks-search">
+                <h3>Add a Pick from Database</h3>
+                <div class="search-row">
+                    <div class="field-group">
+                        <label>Search your database</label>
+                        <input type="text" id="picks-search-input" class="search-input" placeholder="Search by title..." oninput="searchForPicks()">
+                    </div>
+                </div>
+                <div class="picks-results" id="picks-search-results">
+                    <p class="empty">Search your database to add a comic to Picks</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search ComicVine Tab -->
+        <div id="tab-search" class="tab-content active">
+            <div class="search-section">
+                <div class="search-row">
+                    <div class="field-group">
+                        <label>Search ComicVine</label>
+                        <input type="text" id="comicvine-search" class="search-input" placeholder="Search for comics..." onkeypress="if(event.key==='Enter')searchComicVine()">
+                    </div>
+                    <button onclick="searchComicVine()">Search</button>
+                </div>
+            </div>
+
+            <div id="search-results" class="comics-list search-results">
+                <div class="empty">Enter a search term to find comics on ComicVine</div>
+            </div>
+        </div>
+
+        <!-- Database Tab -->
+        <div id="tab-database" class="tab-content">
+            <div class="search-section">
+                <label>Filter Database</label>
+                <input type="text" id="search" class="search-input" placeholder="Filter by title, writer, or artist..." oninput="filterComics()">
+            </div>
+
+            <div id="comics-list" class="comics-list">
+                <div class="loading">Loading comics...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const COMICVINE_API_KEY = 'a73ccafe821c2bc5828f001c9ac21a3d25bb41ed';
+        const CORS_PROXY = 'https://corsproxy.io/?';
+
+        let db = null;
+        let allComics = [];
+        let curatedPicks = []; // Array of {id, comic_id, sort_order, comic: {...}}
+        let comicVineKey = COMICVINE_API_KEY;
+
+        // Load saved credentials
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('supabase-url');
+            const savedKey = localStorage.getItem('supabase-key');
+            const savedCvKey = localStorage.getItem('comicvine-key');
+
+            if (savedUrl) document.getElementById('supabase-url').value = savedUrl;
+            if (savedKey) document.getElementById('supabase-key').value = savedKey;
+            document.getElementById('comicvine-key').value = savedCvKey || COMICVINE_API_KEY;
+        };
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        }
+
+        async function connect() {
+            const url = document.getElementById('supabase-url').value.trim();
+            const key = document.getElementById('supabase-key').value.trim();
+            const cvKey = document.getElementById('comicvine-key').value.trim();
+
+            if (!url || !key) {
+                showStatus('Please enter Supabase URL and Key', 'error');
+                return;
+            }
+
+            // Save credentials
+            localStorage.setItem('supabase-url', url);
+            localStorage.setItem('supabase-key', key);
+            if (cvKey) {
+                localStorage.setItem('comicvine-key', cvKey);
+                comicVineKey = cvKey;
+            }
+
+            try {
+                db = window.supabase.createClient(url, key);
+
+                // Fetch comics
+                const { data: comicsData, error: comicsError } = await db
+                    .from('comics')
+                    .select('*')
+                    .order('title');
+
+                if (comicsError) throw comicsError;
+
+                allComics = comicsData || [];
+
+                // Fetch curated picks
+                const { data: picksData, error: picksError } = await db
+                    .from('curated_picks')
+                    .select(`
+                        id,
+                        comic_id,
+                        sort_order,
+                        comics (*)
+                    `)
+                    .eq('pick_type', 'starter')
+                    .eq('active', true)
+                    .order('sort_order');
+
+                if (picksError) {
+                    console.error('Picks error:', picksError);
+                    curatedPicks = [];
+                } else {
+                    curatedPicks = picksData || [];
+                }
+
+                document.getElementById('connected-badge').style.display = 'inline-block';
+                document.getElementById('main-container').style.display = 'block';
+                document.getElementById('comic-count').textContent = allComics.length;
+
+                renderComics(allComics);
+                renderPicks();
+                showStatus(`Connected! ${allComics.length} comics, ${curatedPicks.length} picks`, 'success');
+
+            } catch (error) {
+                showStatus(`Connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== PICKS ====================
+
+        function renderPicks() {
+            const grid = document.getElementById('picks-grid');
+            let html = '';
+
+            for (let i = 1; i <= 4; i++) {
+                const pick = curatedPicks.find(p => p.sort_order === i);
+
+                if (pick && pick.comics) {
+                    const comic = pick.comics;
+                    html += `
+                        <div class="pick-slot filled">
+                            <img src="${comic.cover_url || ''}" alt="${escapeHtml(comic.title)}" onerror="this.style.display='none'">
+                            <h4>${escapeHtml(comic.title)}</h4>
+                            <p>${comic.year || ''}</p>
+                            <button class="btn-danger btn-small" onclick="removePick(${pick.id})">Remove</button>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="pick-slot">
+                            <div class="slot-number">${i}</div>
+                            <p class="empty-text">Empty slot</p>
+                        </div>
+                    `;
+                }
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function searchForPicks() {
+            const query = document.getElementById('picks-search-input').value.toLowerCase().trim();
+            const container = document.getElementById('picks-search-results');
+
+            if (!query) {
+                container.innerHTML = '<p class="empty">Search your database to add a comic to Picks</p>';
+                return;
+            }
+
+            const results = allComics.filter(c =>
+                c.title?.toLowerCase().includes(query)
+            ).slice(0, 8);
+
+            if (results.length === 0) {
+                container.innerHTML = '<p class="empty">No comics found</p>';
+                return;
+            }
+
+            // Find which slot is available
+            const usedSlots = curatedPicks.map(p => p.sort_order);
+            const availableSlot = [1, 2, 3, 4].find(s => !usedSlots.includes(s));
+
+            container.innerHTML = results.map(comic => {
+                const isPick = curatedPicks.some(p => p.comic_id === comic.id);
+                return `
+                    <div class="picks-result-card">
+                        <img src="${comic.cover_url || ''}" alt="${escapeHtml(comic.title)}" onerror="this.style.display='none'">
+                        <div class="info">
+                            <h4>${escapeHtml(comic.title)}</h4>
+                            <p>${comic.year || ''}</p>
+                        </div>
+                        ${isPick
+                            ? '<span class="result-badge pick-badge">Already a Pick</span>'
+                            : availableSlot
+                                ? `<button class="btn-small btn-add" onclick="addPick('${comic.id}', ${availableSlot})">Add #${availableSlot}</button>`
+                                : '<span class="result-badge">Picks Full</span>'
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function addPick(comicId, sortOrder) {
+            try {
+                const { data, error } = await db
+                    .from('curated_picks')
+                    .insert({
+                        comic_id: comicId,
+                        pick_type: 'starter',
+                        sort_order: sortOrder,
+                        active: true
+                    })
+                    .select(`
+                        id,
+                        comic_id,
+                        sort_order,
+                        comics (*)
+                    `)
+                    .single();
+
+                if (error) throw error;
+
+                curatedPicks.push(data);
+                renderPicks();
+                searchForPicks(); // Refresh search results
+                showStatus(`Added to Pick #${sortOrder}`, 'success');
+
+            } catch (error) {
+                showStatus(`Failed to add pick: ${error.message}`, 'error');
+            }
+        }
+
+        async function removePick(pickId) {
+            try {
+                const { error } = await db
+                    .from('curated_picks')
+                    .delete()
+                    .eq('id', pickId);
+
+                if (error) throw error;
+
+                curatedPicks = curatedPicks.filter(p => p.id !== pickId);
+                renderPicks();
+                searchForPicks(); // Refresh search results
+                showStatus('Pick removed', 'success');
+
+            } catch (error) {
+                showStatus(`Failed to remove pick: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== COMICVINE SEARCH ====================
+
+        async function searchComicVine() {
+            const query = document.getElementById('comicvine-search').value.trim();
+            if (!query) return;
+
+            const container = document.getElementById('search-results');
+            container.innerHTML = '<div class="loading">Searching ComicVine...</div>';
+
+            try {
+                const searchUrl = `https://comicvine.gamespot.com/api/search/?api_key=${comicVineKey}&format=json&resources=issue&query=${encodeURIComponent(query)}&limit=20`;
+                const response = await fetch(CORS_PROXY + encodeURIComponent(searchUrl));
+
+                if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+                const data = await response.json();
+
+                if (data.error !== 'OK') throw new Error(`ComicVine error: ${data.error}`);
+
+                const results = data.results || [];
+
+                if (results.length === 0) {
+                    container.innerHTML = '<div class="empty">No results found</div>';
+                    return;
+                }
+
+                container.innerHTML = results
+                    .filter(issue => issue.image?.medium_url)
+                    .map(issue => {
+                        const id = `cv-${issue.id}`;
+                        const inDb = allComics.some(c => c.id === id);
+                        const title = `${issue.volume?.name || 'Unknown'}${issue.issue_number ? ` #${issue.issue_number}` : ''}`;
+                        const year = issue.cover_date ? issue.cover_date.split('-')[0] : '';
+
+                        const writer = issue.person_credits?.find(p =>
+                            p.role?.toLowerCase().includes('writer')
+                        )?.name || '';
+                        const artist = issue.person_credits?.find(p =>
+                            p.role?.toLowerCase().includes('artist') || p.role?.toLowerCase().includes('penciler')
+                        )?.name || '';
+
+                        const desc = issue.description
+                            ? issue.description.replace(/<[^>]*>/g, '').substring(0, 300)
+                            : '';
+
+                        return `
+                            <div class="comic-card new-comic" id="result-${issue.id}">
+                                <img src="${issue.image?.medium_url || ''}" alt="${escapeHtml(title)}" class="comic-cover" onerror="this.style.display='none'">
+                                <div class="comic-info">
+                                    <h3>${escapeHtml(title)} ${inDb ? '<span class="result-badge in-db-badge">In Database</span>' : '<span class="result-badge">ComicVine</span>'}</h3>
+                                    <p class="comic-meta">${year}</p>
+
+                                    <div class="comic-fields">
+                                        <div class="field-group">
+                                            <label>Writer</label>
+                                            <input type="text" id="cv-writer-${issue.id}" value="${escapeHtml(writer)}" placeholder="Writer name">
+                                        </div>
+                                        <div class="field-group">
+                                            <label>Artist</label>
+                                            <input type="text" id="cv-artist-${issue.id}" value="${escapeHtml(artist)}" placeholder="Artist name">
+                                        </div>
+                                        <div class="field-group full-width">
+                                            <label>Cover URL</label>
+                                            <input type="text" id="cv-cover-${issue.id}" value="${escapeHtml(issue.image?.medium_url || '')}" placeholder="https://...">
+                                        </div>
+                                        <div class="field-group full-width">
+                                            <label>Story Brief</label>
+                                            <textarea id="cv-desc-${issue.id}" placeholder="Story description...">${escapeHtml(desc)}</textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="actions">
+                                        ${inDb
+                                            ? `<button class="btn-secondary" onclick="switchTab('database'); document.getElementById('search').value='${escapeHtml(title)}'; filterComics();">View in Database</button>`
+                                            : `<button class="btn-add" onclick="addToDatabase('${issue.id}', '${escapeHtml(title).replace(/'/g, "\\'")}', '${escapeHtml(issue.image?.medium_url || '')}', '${year}')">Add to Database</button>`
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+            } catch (error) {
+                container.innerHTML = `<div class="empty">Search failed: ${error.message}</div>`;
+            }
+        }
+
+        async function addToDatabase(cvId, title, coverUrl, year) {
+            const writer = document.getElementById(`cv-writer-${cvId}`).value.trim();
+            const artist = document.getElementById(`cv-artist-${cvId}`).value.trim();
+            const description = document.getElementById(`cv-desc-${cvId}`).value.trim();
+
+            const id = `cv-${cvId}`;
+
+            try {
+                const { error } = await db
+                    .from('comics')
+                    .insert({
+                        id,
+                        title,
+                        cover_url: coverUrl,
+                        year: year ? parseInt(year) : null,
+                        writer: writer || null,
+                        artist: artist || null,
+                        description: description || null,
+                        publisher: null
+                    });
+
+                if (error) throw error;
+
+                const newComic = {
+                    id,
+                    title,
+                    cover_url: coverUrl,
+                    year: year ? parseInt(year) : null,
+                    writer,
+                    artist,
+                    description,
+                    publisher: null
+                };
+
+                allComics.push(newComic);
+                document.getElementById('comic-count').textContent = allComics.length;
+                renderComics(allComics);
+
+                const card = document.getElementById(`result-${cvId}`);
+                if (card) {
+                    const badge = card.querySelector('.result-badge');
+                    if (badge) {
+                        badge.className = 'result-badge in-db-badge';
+                        badge.textContent = 'In Database';
+                    }
+                    const btn = card.querySelector('.btn-add');
+                    if (btn) {
+                        btn.className = 'btn-secondary';
+                        btn.textContent = 'View in Database';
+                        btn.onclick = () => {
+                            switchTab('database');
+                            document.getElementById('search').value = title;
+                            filterComics();
+                        };
+                    }
+                }
+
+                showStatus(`Added "${title}" to database`, 'success');
+
+            } catch (error) {
+                showStatus(`Failed to add: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== DATABASE ====================
+
+        function filterComics() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const filtered = allComics.filter(comic =>
+                comic.title?.toLowerCase().includes(search) ||
+                (comic.writer && comic.writer.toLowerCase().includes(search)) ||
+                (comic.artist && comic.artist.toLowerCase().includes(search))
+            );
+            renderComics(filtered);
+        }
+
+        function renderComics(comics) {
+            const container = document.getElementById('comics-list');
+
+            if (comics.length === 0) {
+                container.innerHTML = '<div class="empty">No comics found</div>';
+                return;
+            }
+
+            container.innerHTML = comics.map(comic => `
+                <div class="comic-card" id="comic-${comic.id}">
+                    <img src="${comic.cover_url || ''}" alt="${escapeHtml(comic.title)}" class="comic-cover" onerror="this.style.display='none'">
+                    <div class="comic-info">
+                        <h3>${escapeHtml(comic.title)}</h3>
+                        <p class="comic-meta">${comic.publisher || 'Unknown'} · ${comic.year || 'Unknown'}</p>
+
+                        <div class="comic-fields">
+                            <div class="field-group full-width">
+                                <label>Title</label>
+                                <input type="text" id="title-${comic.id}" value="${escapeHtml(comic.title || '')}" placeholder="Comic title">
+                            </div>
+                            <div class="field-group">
+                                <label>Writer</label>
+                                <input type="text" id="writer-${comic.id}" value="${escapeHtml(comic.writer || '')}" placeholder="Writer name">
+                            </div>
+                            <div class="field-group">
+                                <label>Artist</label>
+                                <input type="text" id="artist-${comic.id}" value="${escapeHtml(comic.artist || '')}" placeholder="Artist name">
+                            </div>
+                            <div class="field-group full-width">
+                                <label>Cover URL</label>
+                                <input type="text" id="cover-${comic.id}" value="${escapeHtml(comic.cover_url || '')}" placeholder="https://...">
+                            </div>
+                            <div class="field-group full-width">
+                                <label>Story Brief</label>
+                                <textarea id="description-${comic.id}" placeholder="Story description...">${escapeHtml(comic.description || '')}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            <button onclick="saveComic('${comic.id}')">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveComic(id) {
+            const title = document.getElementById(`title-${id}`).value.trim();
+            const writer = document.getElementById(`writer-${id}`).value.trim();
+            const artist = document.getElementById(`artist-${id}`).value.trim();
+            const coverUrl = document.getElementById(`cover-${id}`).value.trim();
+            const description = document.getElementById(`description-${id}`).value.trim();
+
+            try {
+                const { error } = await db
+                    .from('comics')
+                    .update({
+                        title: title || null,
+                        writer: writer || null,
+                        artist: artist || null,
+                        cover_url: coverUrl || null,
+                        description: description || null
+                    })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                const comic = allComics.find(c => c.id === id);
+                if (comic) {
+                    comic.title = title;
+                    comic.writer = writer;
+                    comic.artist = artist;
+                    comic.cover_url = coverUrl;
+                    comic.description = description;
+                }
+
+                showStatus(`Saved changes`, 'success');
+
+                const card = document.getElementById(`comic-${id}`);
+                card.classList.add('editing');
+                setTimeout(() => card.classList.remove('editing'), 1000);
+
+            } catch (error) {
+                showStatus(`Save failed: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== UTILS ====================
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.className = 'status';
+                }, 3000);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

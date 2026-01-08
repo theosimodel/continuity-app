@@ -4,6 +4,24 @@ export type ReadingStatus = 'WANT_TO_READ' | 'READING' | 'FINISHED' | 'DROPPED';
 // Design.md locked read states
 export type ReadState = 'read' | 'owned' | 'want' | 'reread';
 
+// AI Enrichment data structure
+export interface AIEnrichment {
+  storySummary?: string;
+  spoilerFreeSummary?: string;
+  significance?: 'major' | 'minor' | 'filler';
+  significanceNotes?: string;
+  keyEvents?: string[];
+  firstAppearances?: {
+    characters?: string[];
+    items?: string[];
+    teams?: string[];
+  };
+  mustRead?: boolean;
+  canSkip?: boolean;
+  enrichedAt?: number;
+  confidence?: number;
+}
+
 export interface Comic {
   id: string;
   title: string;
@@ -18,6 +36,7 @@ export interface Comic {
   isGenerated?: boolean;
   readStates?: ReadState[];
   whereToRead?: string;  // Manual override for Where to Read text
+  aiEnrichment?: AIEnrichment;
 }
 
 export interface Review {

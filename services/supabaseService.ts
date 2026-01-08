@@ -3,7 +3,7 @@
  */
 
 import { createClient, User, Session } from '@supabase/supabase-js';
-import { Comic, ReadState, List, ListItem, ListVisibility } from '../types';
+import { Comic, ReadState, List, ListItem, ListVisibility, AIEnrichment } from '../types';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -29,31 +29,22 @@ export const signUp = async (
   password: string,
   username: string
 ): Promise<{ user: User | null; error: AuthError | null }> => {
-  // First, sign up the user
+  // Sign up with username in metadata (trigger will use this for profile)
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        username: username,
+      },
+    },
   });
 
   if (error) {
     return { user: null, error: { message: error.message } };
   }
 
-  // Create profile for the user
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: data.user.id,
-        username,
-      });
-
-    if (profileError) {
-      console.error('Error creating profile:', profileError);
-      // Don't fail signup if profile creation fails
-    }
-  }
-
+  // Profile is created automatically by database trigger
   return { user: data.user, error: null };
 };
 
@@ -88,10 +79,10 @@ export const getCurrentSession = async (): Promise<Session | null> => {
 };
 
 export const onAuthStateChange = (
-  callback: (user: User | null) => void
+  callback: (user: User | null, event?: string) => void
 ) => {
   return supabase.auth.onAuthStateChange((event, session) => {
-    callback(session?.user ?? null);
+    callback(session?.user ?? null, event);
   });
 };
 
@@ -235,6 +226,7 @@ export const upsertComic = async (comic: Comic): Promise<Comic | null> => {
       description: comic.description,
       cover_url: comic.coverUrl,
       where_to_read: comic.whereToRead,
+      ai_enrichment: comic.aiEnrichment,
     })
     .select()
     .single();
@@ -245,6 +237,26 @@ export const upsertComic = async (comic: Comic): Promise<Comic | null> => {
   }
 
   return mapDbToComic(data);
+};
+
+/**
+ * Save AI enrichment data for a comic
+ */
+export const saveEnrichment = async (
+  comicId: string,
+  enrichment: AIEnrichment
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('comics')
+    .update({ ai_enrichment: enrichment })
+    .eq('id', comicId);
+
+  if (error) {
+    console.error('Error saving enrichment:', error);
+    return false;
+  }
+
+  return true;
 };
 
 // Only insert comic if it doesn't already exist (preserves admin edits)
@@ -406,6 +418,7 @@ interface DbComic {
   description: string;
   cover_url: string;
   where_to_read?: string;
+  ai_enrichment?: AIEnrichment;
 }
 
 interface UserComicData {
@@ -425,6 +438,7 @@ const mapDbToComic = (row: DbComic): Comic => ({
   description: row.description,
   coverUrl: row.cover_url,
   whereToRead: row.where_to_read,
+  aiEnrichment: row.ai_enrichment,
 });
 
 // ============================================

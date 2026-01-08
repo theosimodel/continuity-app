@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Loader2, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { signIn, signUp, resetPassword } from '../services/supabaseService';
 
@@ -6,16 +6,29 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialMode?: 'signin' | 'signup';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initialMode = 'signin' }) => {
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Reset to initialMode when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setEmail('');
+      setPassword('');
+      setUsername('');
+      setError(null);
+      setSuccess(null);
+    }
+  }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
 
@@ -43,8 +56,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         if (error) {
           setError(error.message);
         } else {
-          onSuccess();
-          onClose();
+          setSuccess('Check your email to confirm your account!');
         }
       } else {
         const { error } = await signIn(email, password);
@@ -179,7 +191,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
           )}
 
           {success && (
-            <p className="text-green-400 text-sm">{success}</p>
+            <div className="bg-[#4FD1C5]/10 border border-[#4FD1C5]/30 rounded-lg p-4 text-center">
+              <p className="text-[#4FD1C5] font-medium">{success}</p>
+            </div>
           )}
 
           <button

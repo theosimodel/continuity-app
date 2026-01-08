@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, User, BookOpen, LayoutGrid, Bookmark, Archive, Eye, PenTool, Book } from 'lucide-react';
+import { Search, User, BookOpen, LayoutGrid, Bookmark, Archive, Eye, PenTool, Book, Sparkles } from 'lucide-react';
 
 interface NavbarProps {
   onNavigate: (path: string) => void;
@@ -26,6 +26,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage, userSigil }) =>
     { id: 'home', label: 'HQ', icon: LayoutGrid, path: '/' },
     { id: 'long-boxes', label: 'LONG BOXES', icon: Bookmark, path: '/long-boxes' },
     { id: 'continuity', label: 'CONTINUITY', icon: BookOpen, path: '/continuity' },
+    { id: 'archivist', label: 'ARCHIVIST', icon: Sparkles, path: '/archivist' },
     { id: 'identity', label: null, icon: UserSigilIcon, path: '/identity' },
   ];
 

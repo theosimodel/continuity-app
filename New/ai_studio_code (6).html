@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Continuity</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #0b0d10;
+      --accent-color: #7ee0d6;
+      --text-main: #ffffff;
+      --text-dim: #b8bcc6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* Ambient background texture */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 30px 30px;
+      pointer-events: none;
+    }
+
+    /* This container keeps everything centered at start and grows as items reveal */
+    .viewport-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 60px 20px;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+
+    /* THE REVEAL LOGIC - Matches your original's smoothness */
+    .reveal-item {
+      opacity: 0;
+      max-height: 0;
+      margin: 0;
+      overflow: hidden;
+      transform: translateY(15px);
+      transition: 
+        opacity 1.5s ease, 
+        transform 1.5s ease, 
+        max-height 1.2s ease, 
+        margin 1.2s ease;
+    }
+
+    .reveal-item.show {
+      opacity: 1;
+      max-height: 500px; /* Allow enough height for features */
+      margin: 15px 0;    
+      transform: translateY(0);
+    }
+
+    /* Typography */
+    .line-one, .line-two, .line-three {
+      font-family: "Source Serif 4", Georgia, serif;
+      letter-spacing: -0.01em;
+    }
+
+    .line-one {
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      font-weight: 700;
+    }
+
+    .line-two {
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      font-weight: 600;
+      color: var(--accent-color);
+    }
+
+    .line-three {
+      font-size: clamp(1.8rem, 4vw, 2.2rem);
+      margin-top: 40px !important;
+    }
+
+    /* Feature Styling */
+    .feature {
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+
+    .feature strong {
+      color: var(--text-main);
+      font-size: 1.25rem;
+      display: block;
+      margin-top: 10px;
+    }
+
+    /* CTA Button */
+    .cta-btn {
+      background: var(--accent-color);
+      color: var(--bg-color);
+      border: none;
+      padding: 1.1rem 2.8rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 50px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 30px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .cta-btn:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 25px rgba(126, 224, 214, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="viewport-wrapper">
+    <div class="container">
+      <h1 class="reveal-item line-one" id="l1">Reading comics is easy.</h1>
+      <h2 class="reveal-item line-two" id="l2">Remembering them isn’t.</h2>
+      
+      <h3 class="reveal-item line-three" id="l3">Continuity lets you…</h3>
+
+      <!-- Features Group -->
+      <div class="reveal-item feature" id="f1">
+        📖 <strong>Remember every comic you’ve read</strong>
+        <span>— from your first issue to now</span>
+      </div>
+
+      <div class="reveal-item feature" id="f2">
+        ⭐ <strong>Mark what you want to read, own, or return to</strong>
+      </div>
+
+      <div class="reveal-item feature" id="f3">
+        ✍️ <strong>Write notes for yourself</strong>
+        <span>— not ratings for engagement</span>
+      </div>
+
+      <div class="reveal-item feature" id="f4">
+        🗂 <strong>Curate and share reading paths</strong>
+        <span>by creator, theme, era, or mood</span>
+      </div>
+
+      <div class="reveal-item feature" id="f5">
+        🧠 <strong>Treat your reading history as canon</strong>
+        <span>— not content, not competition</span>
+      </div>
+
+      <!-- Button -->
+      <div class="reveal-item" id="cta">
+        <button class="cta-btn">Start your Continuity</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const l1 = document.getElementById('l1');
+    const l2 = document.getElementById('l2');
+    const l3 = document.getElementById('l3');
+    const features = [
+      document.getElementById('f1'),
+      document.getElementById('f2'),
+      document.getElementById('f3'),
+      document.getElementById('f4'),
+      document.getElementById('f5')
+    ];
+    const cta = document.getElementById('cta');
+
+    // Original Cinematic Timing Configuration
+    const start = 1000;
+    const gap1 = 2500; // Time for line 1
+    const gap2 = 2200; // Time for line 2
+    const gap3 = 1800; // Time for "Continuity lets you"
+    const featureGap = 1000; // Speed for the list items
+    const finalGap = 1500; // Pause before button
+
+    // Animation Sequence
+    setTimeout(() => l1.classList.add('show'), start);
+    
+    setTimeout(() => l2.classList.add('show'), start + gap1);
+    
+    setTimeout(() => l3.classList.add('show'), start + gap1 + gap2);
+    
+    // Animate features in a tighter sequence
+    features.forEach((f, index) => {
+      setTimeout(() => {
+        f.classList.add('show');
+      }, start + gap1 + gap2 + gap3 + (index * featureGap));
+    });
+
+    // Finally the button
+    setTimeout(() => {
+      cta.classList.add('show');
+    }, start + gap1 + gap2 + gap3 + (features.length * featureGap) + finalGap);
+  </script>
+
+</body>
+</html>

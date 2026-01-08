@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Comic, Review, ReadState, List } from '../types';
-import { getContinuityCount, fetchComicById } from '../services/supabaseService';
+import { Comic, Review, ReadState, List, AIEnrichment } from '../types';
+import { getContinuityCount, fetchComicById, saveEnrichment } from '../services/supabaseService';
+import { aiEnrichmentService } from '../services/aiEnrichmentService';
+import SignificanceBadge, { getFirstAppearancesText } from './SignificanceBadge';
 import Footer from './Footer';
 import {
   Star, Share2, Calendar, Book, Check, X, Pencil, Plus, List as ListIcon,
-  Loader2, AlertCircle, BookOpen, Bookmark, Heart
+  Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff
 } from 'lucide-react';
 
 interface ComicDetailV2Props {
@@ -47,6 +49,11 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   const [showListMenu, setShowListMenu] = useState(false);
   const [continuityCount, setContinuityCount] = useState<number>(0);
   const [noteSaved, setNoteSaved] = useState(false);
+
+  // AI Enrichment state
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [showSpoilers, setShowSpoilers] = useState(false);
+  const [enrichmentError, setEnrichmentError] = useState<string | null>(null);
 
   // Fetch comic from Supabase if not found locally
   useEffect(() => {
@@ -106,6 +113,39 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
       onLog(comic, { rating, text: noteText });
       setNoteSaved(true);
       setTimeout(() => setNoteSaved(false), 2000);
+    }
+  };
+
+  // Handle AI enrichment
+  const handleEnrich = async () => {
+    if (!comic || isEnriching) return;
+
+    setIsEnriching(true);
+    setEnrichmentError(null);
+
+    try {
+      const enrichment = await aiEnrichmentService.enrichComic(comic);
+
+      if (enrichment) {
+        // Save to database
+        await saveEnrichment(comic.id, enrichment);
+
+        // Update local state
+        const updatedComic = { ...comic, aiEnrichment: enrichment };
+        onUpdateComic(updatedComic);
+
+        // Also update fetchedComic if that's what we're viewing
+        if (fetchedComic) {
+          setFetchedComic(updatedComic);
+        }
+      } else {
+        setEnrichmentError('Could not analyze this comic. Please try again.');
+      }
+    } catch (error) {
+      console.error('Enrichment error:', error);
+      setEnrichmentError('An error occurred. Please try again.');
+    } finally {
+      setIsEnriching(false);
     }
   };
 
@@ -267,6 +307,127 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
               </div>
             </div>
           </div>
+
+          {/* AI Enrichment Section */}
+          {comic.aiEnrichment ? (
+            <div className="bg-[#161A21] p-6 rounded-xl border border-[#1E232B] space-y-4">
+              {/* Header with badge */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="text-[#4FD1C5]" size={20} />
+                  <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">AI Insights</h3>
+                </div>
+                <SignificanceBadge enrichment={comic.aiEnrichment} />
+              </div>
+
+              {/* Spoiler-free summary */}
+              {comic.aiEnrichment.spoilerFreeSummary && (
+                <p className="text-white text-base leading-relaxed">
+                  {comic.aiEnrichment.spoilerFreeSummary}
+                </p>
+              )}
+
+              {/* First Appearances */}
+              {comic.aiEnrichment.firstAppearances && (
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                  <p className="text-[10px] text-purple-400 font-bold tracking-widest uppercase mb-2">
+                    First Appearance
+                  </p>
+                  <p className="text-white text-sm">
+                    {getFirstAppearancesText(comic.aiEnrichment)}
+                  </p>
+                </div>
+              )}
+
+              {/* Key Events */}
+              {comic.aiEnrichment.keyEvents && comic.aiEnrichment.keyEvents.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase mb-2">Key Events</p>
+                  <ul className="space-y-1">
+                    {comic.aiEnrichment.keyEvents.map((event, i) => (
+                      <li key={i} className="text-sm text-[#B3B8C2] flex items-start gap-2">
+                        <span className="text-[#4FD1C5] mt-1">•</span>
+                        {event}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Significance Notes */}
+              {comic.aiEnrichment.significanceNotes && (
+                <div>
+                  <p className="text-[10px] text-[#7C828D] font-bold tracking-widest uppercase mb-2">Why It Matters</p>
+                  <p className="text-sm text-[#B3B8C2]">{comic.aiEnrichment.significanceNotes}</p>
+                </div>
+              )}
+
+              {/* Spoiler Toggle & Full Summary */}
+              {comic.aiEnrichment.storySummary && (
+                <div className="border-t border-[#1E232B] pt-4">
+                  <button
+                    onClick={() => setShowSpoilers(!showSpoilers)}
+                    className="flex items-center gap-2 text-sm text-[#7C828D] hover:text-white transition-colors"
+                  >
+                    {showSpoilers ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showSpoilers ? 'Hide Spoilers' : 'Show Full Summary (Spoilers)'}
+                  </button>
+                  {showSpoilers && (
+                    <p className="text-white text-sm leading-relaxed mt-3 p-3 bg-[#0E1116] rounded-lg border border-[#1E232B]">
+                      {comic.aiEnrichment.storySummary}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Must Read / Can Skip indicators */}
+              <div className="flex gap-3 text-xs">
+                {comic.aiEnrichment.mustRead && (
+                  <span className="text-[#4FD1C5] flex items-center gap-1">
+                    <Check size={12} /> Must Read
+                  </span>
+                )}
+                {comic.aiEnrichment.canSkip && (
+                  <span className="text-[#7C828D] flex items-center gap-1">
+                    <X size={12} /> Optional
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-[#161A21] p-6 rounded-xl border border-[#1E232B]">
+              <div className="flex items-center gap-3 mb-3">
+                <Sparkles className="text-[#4FD1C5]" size={20} />
+                <h3 className="text-lg font-semibold text-white">Get AI Insights</h3>
+              </div>
+              <p className="text-sm text-[#B3B8C2] mb-4">
+                Learn what happens in this issue and why it matters. Discover key events, first appearances, and reading significance.
+              </p>
+              {enrichmentError && (
+                <p className="text-red-400 text-sm mb-3">{enrichmentError}</p>
+              )}
+              <button
+                onClick={handleEnrich}
+                disabled={isEnriching || !aiEnrichmentService.isAvailable()}
+                className="bg-[#4FD1C5] hover:bg-[#38B2AC] disabled:bg-[#2A303C] disabled:text-[#7C828D] text-black font-semibold py-2.5 px-6 rounded transition-colors flex items-center gap-2"
+              >
+                {isEnriching ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} />
+                    Analyze This Issue
+                  </>
+                )}
+              </button>
+              {!aiEnrichmentService.isAvailable() && (
+                <p className="text-[#7C828D] text-xs mt-2">AI features require a Gemini API key.</p>
+              )}
+            </div>
+          )}
 
           {/* Synopsis */}
           <div className="space-y-4">
