@@ -48,6 +48,7 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   const [showListMenu, setShowListMenu] = useState(false);
   const [continuityCount, setContinuityCount] = useState<number>(0);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [isEditingNote, setIsEditingNote] = useState(false);
 
   // AI Enrichment state
   const [isEnriching, setIsEnriching] = useState(false);
@@ -80,6 +81,7 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     setShowListMenu(false);
     setNoteSaved(false);
     setShowSpoilers(false);
+    setIsEditingNote(false);
   }, [id, comic?.rating, comic?.review]);
 
   // Fetch continuity count separately (only on id change)
@@ -114,6 +116,7 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     if (comic) {
       onLog(comic, { rating, text: noteText });
       setNoteSaved(true);
+      setIsEditingNote(false);
       setTimeout(() => setNoteSaved(false), 2000);
     }
   };
@@ -483,54 +486,102 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
           {/* Reflection Section - Always visible but highlighted after state selection */}
           <div className={`bg-[#161A21] p-6 rounded-xl border ${isInContinuity ? 'border-[#4FD1C5]/30' : 'border-[#1E232B]'}`}>
             <h3 className="text-lg font-semibold text-white mb-1">Your take</h3>
-            <p className="text-sm text-[#7C828D] mb-6">For you — not for an algorithm.</p>
+            <p className="text-sm text-[#7C828D] mb-4">For you — not for an algorithm.</p>
 
-            {/* Rating */}
-            <div className="mb-6">
-              <p className="text-sm text-[#B3B8C2] mb-3">How did this one land?</p>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => {
-                      setRating(star);
-                      if (comic && onSaveRating) onSaveRating(comic, star);
-                    }}
-                    className="transition-transform active:scale-90"
-                  >
-                    <Star
-                      className={`${(hoverRating || rating) >= star ? 'text-[#4FD1C5] fill-[#4FD1C5]' : 'text-[#2A303C]'}`}
-                      size={32}
-                    />
-                  </button>
-                ))}
+            {/* Display saved note OR show edit form */}
+            {(comic?.review || comic?.rating) && !isEditingNote ? (
+              // Saved note display
+              <div className="space-y-4">
+                {/* Rating display */}
+                {comic.rating && comic.rating > 0 && (
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`${comic.rating && comic.rating >= star ? 'text-[#4FD1C5] fill-[#4FD1C5]' : 'text-[#2A303C]'}`}
+                        size={24}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Note text */}
+                {comic.review && (
+                  <p className="text-white text-base leading-relaxed">{comic.review}</p>
+                )}
+
+                {/* Edit button */}
+                <button
+                  onClick={() => setIsEditingNote(true)}
+                  className="text-sm text-[#7C828D] hover:text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <Pencil size={14} />
+                  Edit
+                </button>
               </div>
-            </div>
+            ) : (
+              // Edit form
+              <>
+                {/* Rating */}
+                <div className="mb-6">
+                  <p className="text-sm text-[#B3B8C2] mb-3">How did this one land?</p>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => {
+                          setRating(star);
+                          if (comic && onSaveRating) onSaveRating(comic, star);
+                        }}
+                        className="transition-transform active:scale-90"
+                      >
+                        <Star
+                          className={`${(hoverRating || rating) >= star ? 'text-[#4FD1C5] fill-[#4FD1C5]' : 'text-[#2A303C]'}`}
+                          size={32}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Notes */}
-            <textarea
-              className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg p-4 text-white text-sm focus:outline-none focus:border-[#4FD1C5] transition-colors resize-none h-32 mb-4"
-              placeholder="Why did this one matter to you?"
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-            />
+                {/* Notes */}
+                <textarea
+                  className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg p-4 text-white text-sm focus:outline-none focus:border-[#4FD1C5] transition-colors resize-none h-32 mb-4"
+                  placeholder="Why did this one matter to you?"
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                />
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSaveNote}
-                disabled={!noteText && !rating}
-                className="bg-[#4FD1C5] hover:bg-[#38B2AC] disabled:bg-[#2A303C] disabled:text-[#7C828D] text-black font-semibold py-2.5 px-6 rounded transition-colors"
-              >
-                Save your note
-              </button>
-              {noteSaved && (
-                <span className="text-sm text-[#4FD1C5]">
-                  Saved to your Continuity
-                </span>
-              )}
-            </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleSaveNote}
+                    disabled={!noteText && !rating}
+                    className="bg-[#4FD1C5] hover:bg-[#38B2AC] disabled:bg-[#2A303C] disabled:text-[#7C828D] text-black font-semibold py-2.5 px-6 rounded transition-colors"
+                  >
+                    Save
+                  </button>
+                  {isEditingNote && (
+                    <button
+                      onClick={() => {
+                        setIsEditingNote(false);
+                        setNoteText(comic?.review || '');
+                        setRating(comic?.rating || 0);
+                      }}
+                      className="text-[#7C828D] hover:text-white py-2.5 px-4 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {noteSaved && (
+                    <span className="text-sm text-[#4FD1C5]">
+                      Saved
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
