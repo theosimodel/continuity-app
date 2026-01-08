@@ -1388,10 +1388,10 @@ const AppContent: React.FC = () => {
     return comicsWithStates.filter(c => c.readStates?.includes(longBoxFilter));
   }, [allComicsForDetail, longBoxFilter]);
 
-  // Continuity = comics marked as Read, Reread, or Owned
+  // Continuity = only comics marked as Read or Reread (not Want or Owned)
   const continuityComics = useMemo(() => {
     return allComicsForDetail.filter(c =>
-      c.readStates?.includes('read') || c.readStates?.includes('reread') || c.readStates?.includes('owned')
+      c.readStates?.includes('read') || c.readStates?.includes('reread')
     );
   }, [allComicsForDetail]);
 

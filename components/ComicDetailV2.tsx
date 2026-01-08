@@ -150,8 +150,11 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     }
   };
 
-  const isInContinuity = (comic?.readStates?.length || 0) > 0;
-  const primaryState = comic?.readStates?.[0];
+  // Only 'read' and 'reread' count as being in your Continuity
+  // 'want' and 'owned' are tracking states that don't add to Continuity
+  const continuityStates: ReadState[] = ['read', 'reread'];
+  const isInContinuity = comic?.readStates?.some(state => continuityStates.includes(state)) || false;
+  const primaryState = comic?.readStates?.find(state => continuityStates.includes(state)) || comic?.readStates?.[0];
 
   const stateButtons: { state: ReadState; label: string; icon: React.ReactNode; activeColor: string }[] = [
     { state: 'read', label: 'Read', icon: <BookOpen size={16} />, activeColor: 'bg-[#4FD1C5]' },
