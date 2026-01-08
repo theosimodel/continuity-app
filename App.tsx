@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import Navbar from './components/Navbar';
@@ -853,6 +853,9 @@ const AppContent: React.FC = () => {
   const [editingList, setEditingList] = useState<List | null>(null);
   const [showAddToListMenu, setShowAddToListMenu] = useState<string | null>(null); // comic id
 
+  // Load version ref - prevents stale async requests from overwriting newer data
+  const loadVersionRef = useRef(0);
+
   // Avatar sigils - marks of readership
   const avatarSigils = [
     { id: 'sigil:book', icon: Book, label: 'Book' },
@@ -947,6 +950,7 @@ const AppContent: React.FC = () => {
         setUserLists([]);
         setListItemCounts({});
         setListComics({});
+        setComics(INITIAL_COMICS); // Reset to initial state on signout
       }
       setIsAuthLoading(false);
     });
@@ -958,28 +962,38 @@ const AppContent: React.FC = () => {
 
   // Load user's comics with read states, ratings, reviews, etc.
   const loadUserComicsData = async (userId: string) => {
+    // Increment version to track this load operation
+    const currentVersion = ++loadVersionRef.current;
     setIsLoadingUserComics(true);
+
     try {
       const userComicsMap = await fetchUserComics(userId);
 
-      // Fetch actual comic data for each user_comic
-      const comicsWithStates: Comic[] = [];
-      for (const [comicId, userData] of userComicsMap) {
-        const comic = await fetchComicById(comicId);
-        if (comic) {
-          comicsWithStates.push({
-            ...comic,
-            readStates: userData.readStates,
-            rating: userData.rating,
-            review: userData.review,
-          });
-        }
-      }
+      // Parallel fetch instead of sequential (faster, less prone to interruption)
+      const comicsWithStates = await Promise.all(
+        Array.from(userComicsMap).map(async ([comicId, userData]) => {
+          const comic = await fetchComicById(comicId);
+          if (comic) {
+            return {
+              ...comic,
+              readStates: userData.readStates,
+              rating: userData.rating,
+              review: userData.review,
+            };
+          }
+          return null;
+        })
+      );
+
+      // Ignore if a newer load started (prevents race conditions on hot reload)
+      if (loadVersionRef.current !== currentVersion) return;
+
+      const validComics = comicsWithStates.filter((c): c is Comic => c !== null);
 
       // Add to comics state, avoiding duplicates
       setComics(prev => {
         const existingIds = new Set(prev.map(c => c.id));
-        const newComics = comicsWithStates.filter(c => !existingIds.has(c.id));
+        const newComics = validComics.filter(c => !existingIds.has(c.id));
         // Update existing comics with read states
         const updated = prev.map(c => {
           const userData = userComicsMap.get(c.id);
@@ -991,7 +1005,10 @@ const AppContent: React.FC = () => {
         return [...updated, ...newComics];
       });
     } finally {
-      setIsLoadingUserComics(false);
+      // Only update loading state if this is still the current version
+      if (loadVersionRef.current === currentVersion) {
+        setIsLoadingUserComics(false);
+      }
     }
   };
 
@@ -1036,6 +1053,7 @@ const AppContent: React.FC = () => {
     await signOut();
     setUser(null);
     setProfile(null);
+    setComics(INITIAL_COMICS); // Reset comics on signout
   };
 
   const handleStartEditProfile = () => {
