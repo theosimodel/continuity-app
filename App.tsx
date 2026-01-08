@@ -1395,7 +1395,8 @@ const AppContent: React.FC = () => {
 
   const allComicsForDetail = useMemo(() => {
     const map = new Map();
-    [...comics, ...searchResults, ...recommendations, ...starterPicks].forEach(c => map.set(c.id, c));
+    // Put comics LAST so user data (ratings, reviews, readStates) takes priority
+    [...searchResults, ...recommendations, ...starterPicks, ...comics].forEach(c => map.set(c.id, c));
     return Array.from(map.values());
   }, [comics, searchResults, recommendations, starterPicks]);
 
