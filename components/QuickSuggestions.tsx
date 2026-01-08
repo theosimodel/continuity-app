@@ -94,7 +94,7 @@ export const QuickSuggestions: React.FC<QuickSuggestionsProps> = ({
           <button
             key={index}
             onClick={() => onSuggestionClick(suggestion.query)}
-            className="bg-white/[0.04] border border-[rgba(139,92,246,0.35)] hover:bg-[rgba(139,92,246,0.10)] hover:border-[rgba(139,92,246,0.55)] text-white/[0.92] rounded-lg p-3 text-left transition-all"
+            className="bg-white/[0.04] border border-[rgba(139,92,246,0.35)] hover:bg-[rgba(139,92,246,0.10)] hover:border-[rgba(139,92,246,0.55)] text-white/[0.92] rounded p-3 text-left transition-all"
           >
             <div className="flex items-center gap-2">
               {suggestion.icon}

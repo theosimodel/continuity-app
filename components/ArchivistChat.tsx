@@ -249,7 +249,7 @@ export const ArchivistChat: React.FC<ArchivistChatProps> = ({ comics, className 
               key={chip.label}
               onClick={() => setInput(chip.query)}
               disabled={isLoading}
-              className="text-xs px-3 py-1.5 rounded-md bg-[#67D8C6] text-[#0B0F14] font-medium hover:bg-[#53C8B6] transition-all disabled:opacity-50"
+              className="text-xs px-3 py-1.5 rounded-sm bg-[#67D8C6] text-[#0B0F14] font-medium hover:bg-[#53C8B6] transition-all disabled:opacity-50"
             >
               {chip.label}
             </button>
