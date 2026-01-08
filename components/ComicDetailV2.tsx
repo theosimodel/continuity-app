@@ -4,7 +4,6 @@ import { Comic, Review, ReadState, List, AIEnrichment } from '../types';
 import { getContinuityCount, fetchComicById, saveEnrichment } from '../services/supabaseService';
 import { aiEnrichmentService } from '../services/aiEnrichmentService';
 import SignificanceBadge, { getFirstAppearancesText } from './SignificanceBadge';
-import Footer from './Footer';
 import {
   Star, Share2, Calendar, Book, Check, X, Pencil, Plus, List as ListIcon,
   Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff
@@ -561,7 +560,6 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
           ) : null}
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

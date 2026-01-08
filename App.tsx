@@ -807,7 +807,6 @@ const ComicDetail: React.FC<{
           ) : null}
         </div>
       </div>
-      <Footer />
     </div>
   );
 };
@@ -1425,10 +1424,10 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0E1116] pb-20">
+    <div className="min-h-screen bg-[#0E1116] flex flex-col">
       <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
-      
-      <main className="max-w-6xl mx-auto px-4 pt-8">
+
+      <main className="max-w-6xl mx-auto px-4 pt-8 flex-1 w-full">
         <Routes>
           <Route path="/welcome" element={<LandingPage onStart={() => {
             if (!user) {
@@ -1514,7 +1513,6 @@ const AppContent: React.FC = () => {
                   </div>
                 )}
               </div>
-              <Footer />
             </div>
           } />
           <Route path="/search" element={
@@ -1565,7 +1563,6 @@ const AppContent: React.FC = () => {
                   </div>
                 )}
               </div>
-              <Footer />
             </div>
           } />
           <Route path="/continuity" element={
@@ -1621,7 +1618,6 @@ const AppContent: React.FC = () => {
                   </div>
                 )}
               </div>
-              <Footer />
             </div>
           } />
           <Route path="/identity" element={
@@ -1810,7 +1806,6 @@ const AppContent: React.FC = () => {
                   </button>
                 </div>
               )}
-              <Footer />
             </div>
           } />
 
@@ -1834,7 +1829,6 @@ const AppContent: React.FC = () => {
                 </p>
               </div>
               <p className="text-[#7C828D] text-sm mt-12">Last updated: 2025</p>
-              <Footer />
             </div>
           } />
 
@@ -1855,7 +1849,6 @@ const AppContent: React.FC = () => {
                 </p>
               </div>
               <p className="text-[#7C828D] text-sm mt-12">Last updated: 2025</p>
-              <Footer />
             </div>
           } />
 
@@ -1875,11 +1868,12 @@ const AppContent: React.FC = () => {
                   It's a personal canon.
                 </p>
               </div>
-              <Footer />
             </div>
           } />
         </Routes>
       </main>
+
+      <Footer />
 
       <AuthModal
         isOpen={showAuthModal}

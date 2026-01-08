@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Check, Lock, Link, Globe, BookOpen, Bookmark, Pencil, X, User as UserIcon, Book, Archive, Eye, PenTool, Plus, Copy, Bell } from 'lucide-react';
 import { List, ListItem, Comic, ReadState } from '../types';
 import { getListById, getListItems, getProfile, Profile, fetchComicById, forkList } from '../services/supabaseService';
-import Footer from './Footer';
 import ShareModal from './ShareModal';
 
 interface ListViewProps {
@@ -379,9 +378,6 @@ const ListView: React.FC<ListViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <Footer />
 
       {/* Share Modal */}
       <ShareModal
