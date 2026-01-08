@@ -12,6 +12,7 @@ import ListView from './components/ListView';
 import ListCard from './components/ListCard';
 import ResetPassword from './components/ResetPassword';
 import ComicDetailV2 from './components/ComicDetailV2';
+import ArchivistPage from './components/ArchivistPage';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
@@ -833,7 +834,10 @@ const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
   const [isLoadingUserComics, setIsLoadingUserComics] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -914,21 +918,38 @@ const AppContent: React.FC = () => {
 
   // Auth state listener
   useEffect(() => {
-    const { data: { subscription } } = onAuthStateChange(async (authUser) => {
+    const { data: { subscription } } = onAuthStateChange(async (authUser, event) => {
       setUser(authUser);
       if (authUser) {
+        // Start profile loading before fetching
+        setIsProfileLoading(true);
         const userProfile = await getProfile(authUser.id);
         setProfile(userProfile);
+        setIsProfileLoading(false);
+
         // Load user's lists
         loadUserLists(authUser.id);
         // Load user's comics with read states
         loadUserComicsData(authUser.id);
+
+        // Redirect new users to identity page after email verification
+        if (event === 'SIGNED_IN') {
+          // Check if this is a new user (default username or no profile customization)
+          const isNewUser = !userProfile || userProfile.username === 'Reader' || !userProfile.avatar_url;
+          if (isNewUser) {
+            setIsAuthLoading(false);
+            navigate('/identity');
+            return;
+          }
+        }
       } else {
         setProfile(null);
+        setIsProfileLoading(false);
         setUserLists([]);
         setListItemCounts({});
         setListComics({});
       }
+      setIsAuthLoading(false);
     });
 
     return () => {
@@ -1210,6 +1231,47 @@ const AppContent: React.FC = () => {
     setStarterPicks(updateList(starterPicks));
   };
 
+  // Add comic to collection (from Archivist recommendations) - always adds state, doesn't toggle
+  const handleAddToCollection = async (comic: Comic, state: ReadState) => {
+    // Ensure comic exists in Supabase
+    await ensureComicExists(comic);
+
+    const currentStates = comic.readStates || [];
+
+    // Only add if not already present
+    if (currentStates.includes(state)) {
+      return; // Already has this state
+    }
+
+    const newStates = [...currentStates, state];
+
+    // Save to Supabase
+    if (user) {
+      await updateUserComic(user.id, comic.id, { readStates: newStates });
+    }
+
+    const updateComic = (c: Comic): Comic => ({
+      ...c,
+      readStates: newStates
+    });
+
+    const updateList = (list: Comic[]) => {
+      // Check if comic exists in list
+      const exists = list.some(c => c.id === comic.id);
+      if (exists) {
+        return list.map(c => c.id === comic.id ? updateComic(c) : c);
+      } else {
+        // Add the new comic to the list
+        return [...list, { ...comic, readStates: newStates }];
+      }
+    };
+
+    setComics(updateList(comics));
+    setSearchResults(updateList(searchResults));
+    setRecommendations(updateList(recommendations));
+    setStarterPicks(updateList(starterPicks));
+  };
+
   const handleLogComic = async (comic: Comic, reviewData: Partial<Review>) => {
     // Ensure comic exists in Supabase
     // Uses ensureComicExists to preserve any admin edits
@@ -1324,6 +1386,35 @@ const AppContent: React.FC = () => {
     );
   }, [allComicsForDetail]);
 
+  // Check if user needs to complete profile setup
+  const needsProfileSetup = user && (!profile || profile.username === 'Reader' || !profile.avatar_url);
+
+  // Show loading screen while checking auth OR while loading profile for authenticated users
+  if (isAuthLoading || (user && isProfileLoading)) {
+    return (
+      <div className="min-h-screen bg-[#0E1116] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#4FD1C5] mx-auto mb-3" />
+          <p className="text-white/70 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect new users to identity page (except if already there)
+  const currentPath = window.location.hash.replace('#', '') || '/';
+  if (needsProfileSetup && currentPath !== '/identity') {
+    navigate('/identity');
+    return (
+      <div className="min-h-screen bg-[#0E1116] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#4FD1C5] mx-auto mb-3" />
+          <p className="text-white/70 text-sm">Setting up your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0E1116] pb-20">
       <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
@@ -1332,6 +1423,7 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/welcome" element={<LandingPage onStart={() => {
             if (!user) {
+              setAuthModalMode('signup');
               setShowAuthModal(true);
             } else {
               navigate('/');
@@ -1348,6 +1440,7 @@ const AppContent: React.FC = () => {
           <Route path="/comic/:id" element={<ComicDetailV2 comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} onSaveRating={handleSaveRating} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} />} />
           <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} onListForked={handleListForked} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/archivist" element={<ArchivistPage comics={allComicsForDetail} onAddToCollection={handleAddToCollection} />} />
           <Route path="/long-boxes" element={
             <div className="max-w-5xl mx-auto py-8">
               {/* Header */}
@@ -1785,6 +1878,7 @@ const AppContent: React.FC = () => {
         onSuccess={() => {
           setShowAuthModal(false);
         }}
+        initialMode={authModalMode}
       />
 
       <CreateListModal
