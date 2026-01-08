@@ -853,7 +853,7 @@ const AppContent: React.FC = () => {
   const [editingList, setEditingList] = useState<List | null>(null);
   const [showAddToListMenu, setShowAddToListMenu] = useState<string | null>(null); // comic id
 
-  // Load version ref - prevents stale async requests from overwriting newer data
+  // Load version ref - prevents stale async requests from overwriting newer data on hot reload
   const loadVersionRef = useRef(0);
 
   // Avatar sigils - marks of readership
