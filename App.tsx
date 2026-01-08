@@ -1450,6 +1450,12 @@ const AppContent: React.FC = () => {
     return null;
   }
 
+  // Redirect authenticated users away from welcome page to home
+  if (user && currentPath === '/welcome') {
+    navigate('/');
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-[#0E1116] flex flex-col">
       <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
