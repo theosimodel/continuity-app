@@ -72,17 +72,19 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     }
   }, [id, localComic]);
 
-  // Reset form state when navigating to a different comic
+  // Reset form state when navigating to a different comic or when comic data loads
   useEffect(() => {
     setRating(comic?.rating || 0);
     setHoverRating(0);
     setNoteText(comic?.review || '');
     setShareStatus('idle');
     setShowListMenu(false);
-    setContinuityCount(0);
     setNoteSaved(false);
     setShowSpoilers(false);
+  }, [id, comic?.rating, comic?.review]);
 
+  // Fetch continuity count separately (only on id change)
+  useEffect(() => {
     if (id) {
       getContinuityCount(id).then(count => setContinuityCount(count));
     }
