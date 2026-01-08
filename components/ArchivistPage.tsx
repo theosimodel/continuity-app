@@ -16,21 +16,23 @@ interface ArchivistPageProps {
 
 export const ArchivistPage: React.FC<ArchivistPageProps> = ({ comics, onAddToCollection }) => {
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* Page Header - centered */}
-      <div className="text-center mb-6">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <Sparkles className="w-8 h-8 text-[#8B5CF6]" />
-          <h1 className="text-4xl font-space text-white/[0.92] tracking-wider">THE ARCHIVIST</h1>
+    <div className="min-h-[calc(100vh-64px)] flex flex-col">
+      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
+        {/* Page Header - centered */}
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Sparkles className="w-8 h-8 text-[#8B5CF6]" />
+            <h1 className="text-4xl font-space text-white/[0.92] tracking-wider">THE ARCHIVIST</h1>
+          </div>
+          <p className="text-white/70">
+            Get personalized comic recommendations from The Archivist
+          </p>
         </div>
-        <p className="text-white/70">
-          Get personalized comic recommendations from The Archivist
-        </p>
-      </div>
 
-      {/* Chat - full width, taller */}
-      <div className="bg-[#0F141C] rounded-xl border border-white/[0.08] h-[calc(100vh-280px)] min-h-[500px] overflow-hidden">
-        <ArchivistChat comics={comics} onAddToCollection={onAddToCollection} />
+        {/* Chat - full width, taller */}
+        <div className="bg-[#0F141C] rounded-xl border border-white/[0.08] h-[calc(100vh-280px)] min-h-[500px] overflow-hidden">
+          <ArchivistChat comics={comics} onAddToCollection={onAddToCollection} />
+        </div>
       </div>
 
       <Footer />
