@@ -32,6 +32,7 @@ export interface Comic {
   description: string;
   coverUrl: string;
   rating?: number;
+  review?: string;  // User's personal note about the comic
   isFavorite?: boolean;
   isGenerated?: boolean;
   readStates?: ReadState[];

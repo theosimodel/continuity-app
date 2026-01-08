@@ -957,7 +957,7 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  // Load user's comics with read states, ratings, etc.
+  // Load user's comics with read states, ratings, reviews, etc.
   const loadUserComicsData = async (userId: string) => {
     setIsLoadingUserComics(true);
     try {
@@ -972,6 +972,7 @@ const AppContent: React.FC = () => {
             ...comic,
             readStates: userData.readStates,
             rating: userData.rating,
+            review: userData.review,
           });
         }
       }
@@ -984,7 +985,7 @@ const AppContent: React.FC = () => {
         const updated = prev.map(c => {
           const userData = userComicsMap.get(c.id);
           if (userData) {
-            return { ...c, readStates: userData.readStates, rating: userData.rating };
+            return { ...c, readStates: userData.readStates, rating: userData.rating, review: userData.review };
           }
           return c;
         });
@@ -1286,9 +1287,17 @@ const AppContent: React.FC = () => {
       });
     }
 
+    // Update local state with the review and rating
+    const updateComic = (list: Comic[]) => list.map(c =>
+      c.id === comic.id ? { ...c, rating: reviewData.rating ?? c.rating, review: reviewData.text ?? c.review } : c
+    );
+    setComics(updateComic);
+    setSearchResults(prev => updateComic(prev));
+    setRecommendations(prev => updateComic(prev));
+
     // Add comic to local state if not already there
     if (!comics.find(c => c.id === comic.id)) {
-      setComics(prev => [...prev, comic]);
+      setComics(prev => [...prev, { ...comic, rating: reviewData.rating, review: reviewData.text }]);
     }
   };
 

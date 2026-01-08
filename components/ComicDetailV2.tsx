@@ -76,11 +76,12 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   useEffect(() => {
     setRating(comic?.rating || 0);
     setHoverRating(0);
-    setNoteText('');
+    setNoteText(comic?.review || '');
     setShareStatus('idle');
     setShowListMenu(false);
     setContinuityCount(0);
     setNoteSaved(false);
+    setShowSpoilers(false);
 
     if (id) {
       getContinuityCount(id).then(count => setContinuityCount(count));
@@ -398,10 +399,10 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
             <div className="bg-[#161A21] p-6 rounded-xl border border-[#1E232B]">
               <div className="flex items-center gap-3 mb-3">
                 <Sparkles className="text-[#4FD1C5]" size={20} />
-                <h3 className="text-lg font-semibold text-white">Get AI Insights</h3>
+                <h3 className="text-lg font-semibold text-white">Consult the Archivist</h3>
               </div>
               <p className="text-sm text-[#B3B8C2] mb-4">
-                Learn what happens in this issue and why it matters. Discover key events, first appearances, and reading significance.
+                What happens in this issue — and why it matters. Key moments, first appearances, and context.
               </p>
               {enrichmentError && (
                 <p className="text-red-400 text-sm mb-3">{enrichmentError}</p>
@@ -414,12 +415,12 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
                 {isEnriching ? (
                   <>
                     <Loader2 className="animate-spin" size={16} />
-                    Analyzing...
+                    Consulting...
                   </>
                 ) : (
                   <>
                     <Sparkles size={16} />
-                    Analyze This Issue
+                    Consult the Archivist
                   </>
                 )}
               </button>
