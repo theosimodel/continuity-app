@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Comic, Review, ReadState, List, AIEnrichment } from '../types';
 import { getContinuityCount, fetchComicById, saveEnrichment } from '../services/supabaseService';
@@ -6,7 +6,8 @@ import { aiEnrichmentService } from '../services/aiEnrichmentService';
 import SignificanceBadge, { getFirstAppearancesText } from './SignificanceBadge';
 import {
   Star, Share2, Calendar, Book, Check, X, Pencil, Plus, List as ListIcon,
-  Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff
+  Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff,
+  ChevronLeft
 } from 'lucide-react';
 
 interface ComicDetailV2Props {
@@ -53,6 +54,47 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   const [isEnriching, setIsEnriching] = useState(false);
   const [showSpoilers, setShowSpoilers] = useState(false);
   const [enrichmentError, setEnrichmentError] = useState<string | null>(null);
+
+  // Sticky header state
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const [showStatePicker, setShowStatePicker] = useState(false);
+  const lastScrollY = useRef(0);
+
+  // Scroll detection for sticky header with hysteresis
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const threshold = 120;
+      const hideThreshold = 80;
+
+      if (currentScrollY >= threshold && !showStickyHeader) {
+        setShowStickyHeader(true);
+      } else if (currentScrollY <= hideThreshold && showStickyHeader) {
+        setShowStickyHeader(false);
+        setShowStatePicker(false);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showStickyHeader]);
+
+  // Close state picker when clicking outside
+  useEffect(() => {
+    if (!showStatePicker) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-state-picker]')) {
+        setShowStatePicker(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showStatePicker]);
 
   // Fetch comic from Supabase if not found locally
   useEffect(() => {
@@ -178,15 +220,101 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     </div>
   );
 
+  // Get primary action label for sticky header
+  const getPrimaryActionLabel = () => {
+    if (!comic.readStates?.length) return 'Mark…';
+    const state = comic.readStates[0];
+    return `Marked: ${state.charAt(0).toUpperCase()}${state.slice(1)}`;
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Backdrop */}
-      <div className="relative -mx-4 md:-mx-8 h-[400px] mb-[-250px] overflow-hidden">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Compact Sticky Header - appears on scroll */}
+      <div
+        className={`fixed top-0 left-0 right-0 z-50 bg-[#0E1116]/95 backdrop-blur-sm border-b border-[#1E232B] transition-all duration-300 ${
+          showStickyHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-4 h-16 md:h-16 flex items-center justify-between">
+          {/* Left - Back button */}
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1 text-[#B3B8C2] hover:text-white transition-colors text-sm font-medium"
+          >
+            <ChevronLeft size={20} />
+            <span className="hidden sm:inline">Back</span>
+          </button>
+
+          {/* Center - Truncated title */}
+          <h2
+            className="text-white font-space text-sm md:text-base truncate max-w-[45%] md:max-w-[55%] text-center"
+            title={comic.title}
+          >
+            {comic.title}
+          </h2>
+
+          {/* Right - Primary action + Share */}
+          <div className="flex items-center gap-2">
+            {/* Primary Action Button */}
+            <div className="relative" data-state-picker>
+              <button
+                onClick={() => setShowStatePicker(!showStatePicker)}
+                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                  comic.readStates?.length
+                    ? 'bg-[#4FD1C5] text-black'
+                    : 'bg-[#1E232B] text-white hover:bg-[#2A303C]'
+                }`}
+              >
+                {getPrimaryActionLabel()}
+              </button>
+
+              {/* State Picker Dropdown */}
+              {showStatePicker && (
+                <div className="absolute top-full right-0 mt-2 bg-[#161A21] border border-[#1E232B] rounded-lg overflow-hidden shadow-xl z-10 min-w-[140px]">
+                  {stateButtons.map(({ state, label, icon, activeColor }) => {
+                    const isSelected = comic.readStates?.includes(state);
+                    return (
+                      <button
+                        key={state}
+                        onClick={() => {
+                          onToggleReadState(comic, state);
+                          setShowStatePicker(false);
+                        }}
+                        className={`w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors text-sm ${
+                          isSelected
+                            ? 'bg-[#4FD1C5]/20 text-[#4FD1C5]'
+                            : 'text-white hover:bg-[#1E232B]'
+                        }`}
+                      >
+                        {icon}
+                        {label}
+                        {isSelected && <Check size={14} className="ml-auto" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Share Icon */}
+            <button
+              onClick={handleShare}
+              className="p-2 text-[#7C828D] hover:text-white transition-colors"
+              title="Share"
+            >
+              {shareStatus === 'copied' ? <Check size={18} /> : <Share2 size={18} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Backdrop - reduced height for less dead space */}
+      <div className="relative -mx-4 md:-mx-8 h-[320px] mb-[-200px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-[#0E1116] via-[#0E1116]/80 to-transparent z-10" />
         <img src={comic.coverUrl} className="w-full h-full object-cover blur-3xl opacity-20 scale-110" />
       </div>
 
-      <div className="relative z-20 flex flex-col md:flex-row gap-8">
+      <div className="relative z-20 flex flex-col md:flex-row gap-6 pt-4 md:pt-8">
         {/* Left Column - Cover & Status */}
         <div className="md:w-1/5 space-y-6">
           <div className="rounded-lg overflow-hidden border border-[#1E232B] shadow-2xl bg-[#161A21]">
