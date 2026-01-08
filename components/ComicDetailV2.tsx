@@ -181,7 +181,7 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Backdrop */}
-      <div className="relative -mx-4 md:-mx-8 h-[400px] mb-[-250px] overflow-hidden">
+      <div className="relative -mx-4 md:-mx-8 h-[240px] md:h-[260px] mb-[-200px] md:mb-[-210px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-[#0E1116] via-[#0E1116]/80 to-transparent z-10" />
         <img src={comic.coverUrl} className="w-full h-full object-cover blur-3xl opacity-20 scale-110" />
       </div>
