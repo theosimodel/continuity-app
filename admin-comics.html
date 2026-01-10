@@ -895,6 +895,10 @@
                                             <label>Artist</label>
                                             <input type="text" id="cv-artist-${issue.id}" value="${escapeHtml(artist)}" placeholder="Artist name">
                                         </div>
+                                        <div class="field-group">
+                                            <label>Publisher</label>
+                                            <input type="text" id="cv-publisher-${issue.id}" value="" placeholder="Marvel, DC, Image...">
+                                        </div>
                                         <div class="field-group full-width">
                                             <label>Cover URL</label>
                                             <input type="text" id="cv-cover-${issue.id}" value="${escapeHtml(issue.image?.medium_url || '')}" placeholder="https://...">
@@ -924,6 +928,7 @@
         async function addToDatabase(cvId, title, coverUrl, year) {
             const writer = document.getElementById(`cv-writer-${cvId}`).value.trim();
             const artist = document.getElementById(`cv-artist-${cvId}`).value.trim();
+            const publisher = document.getElementById(`cv-publisher-${cvId}`).value.trim();
             const description = document.getElementById(`cv-desc-${cvId}`).value.trim();
 
             const id = `cv-${cvId}`;
@@ -939,7 +944,7 @@
                         writer: writer || null,
                         artist: artist || null,
                         description: description || null,
-                        publisher: null
+                        publisher: publisher || null
                     });
 
                 if (error) throw error;
@@ -952,7 +957,7 @@
                     writer,
                     artist,
                     description,
-                    publisher: null
+                    publisher: publisher || null
                 };
 
                 allComics.push(newComic);
@@ -1025,6 +1030,10 @@
                                 <label>Artist</label>
                                 <input type="text" id="artist-${comic.id}" value="${escapeHtml(comic.artist || '')}" placeholder="Artist name">
                             </div>
+                            <div class="field-group">
+                                <label>Publisher</label>
+                                <input type="text" id="publisher-${comic.id}" value="${escapeHtml(comic.publisher || '')}" placeholder="Marvel, DC, Image...">
+                            </div>
                             <div class="field-group full-width">
                                 <label>Cover URL</label>
                                 <input type="text" id="cover-${comic.id}" value="${escapeHtml(comic.cover_url || '')}" placeholder="https://...">
@@ -1047,6 +1056,7 @@
             const title = document.getElementById(`title-${id}`).value.trim();
             const writer = document.getElementById(`writer-${id}`).value.trim();
             const artist = document.getElementById(`artist-${id}`).value.trim();
+            const publisher = document.getElementById(`publisher-${id}`).value.trim();
             const coverUrl = document.getElementById(`cover-${id}`).value.trim();
             const description = document.getElementById(`description-${id}`).value.trim();
 
@@ -1057,6 +1067,7 @@
                         title: title || null,
                         writer: writer || null,
                         artist: artist || null,
+                        publisher: publisher || null,
                         cover_url: coverUrl || null,
                         description: description || null
                     })
@@ -1069,6 +1080,7 @@
                     comic.title = title;
                     comic.writer = writer;
                     comic.artist = artist;
+                    comic.publisher = publisher;
                     comic.cover_url = coverUrl;
                     comic.description = description;
                 }
