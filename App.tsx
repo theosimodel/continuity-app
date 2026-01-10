@@ -13,6 +13,7 @@ import ListCard from './components/ListCard';
 import ResetPassword from './components/ResetPassword';
 import ComicDetailV2 from './components/ComicDetailV2';
 import ArchivistPage from './components/ArchivistPage';
+import SortFilterControls, { SortOption, sortComics, filterByPublisher, getUniquePublishers } from './components/SortFilterControls';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
@@ -824,6 +825,10 @@ const AppContent: React.FC = () => {
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [longBoxFilter, setLongBoxFilter] = useState<ReadState | 'all'>('all');
+  const [longBoxSort, setLongBoxSort] = useState<SortOption>('title');
+  const [longBoxPublisher, setLongBoxPublisher] = useState<string | null>(null);
+  const [searchSort, setSearchSort] = useState<SortOption>('title');
+  const [searchPublisher, setSearchPublisher] = useState<string | null>(null);
   const [starterPicks, setStarterPicks] = useState<Comic[]>(STARTER_PICKS);
   const [isFirstVisit, setIsFirstVisit] = useState(() => {
     return localStorage.getItem('continuity-welcomed') !== 'true';
@@ -1407,10 +1412,25 @@ const AppContent: React.FC = () => {
   }, [comics, searchResults, recommendations, starterPicks]);
 
   const collectedComics = useMemo(() => {
-    const comicsWithStates = allComicsForDetail.filter(c => c.readStates?.length);
-    if (longBoxFilter === 'all') return comicsWithStates;
-    return comicsWithStates.filter(c => c.readStates?.includes(longBoxFilter));
-  }, [allComicsForDetail, longBoxFilter]);
+    let result = allComicsForDetail.filter(c => c.readStates?.length);
+    if (longBoxFilter !== 'all') {
+      result = result.filter(c => c.readStates?.includes(longBoxFilter));
+    }
+    result = filterByPublisher(result, longBoxPublisher);
+    result = sortComics(result, longBoxSort);
+    return result;
+  }, [allComicsForDetail, longBoxFilter, longBoxSort, longBoxPublisher]);
+
+  // Sorted and filtered search results
+  const filteredSearchResults = useMemo(() => {
+    let result = filterByPublisher(searchResults, searchPublisher);
+    result = sortComics(result, searchSort);
+    return result;
+  }, [searchResults, searchSort, searchPublisher]);
+
+  // Get unique publishers for filters
+  const longBoxPublishers = useMemo(() => getUniquePublishers(allComicsForDetail.filter(c => c.readStates?.length)), [allComicsForDetail]);
+  const searchPublishers = useMemo(() => getUniquePublishers(searchResults), [searchResults]);
 
   // Continuity = only comics marked as Read or Reread (not Want or Owned)
   const continuityComics = useMemo(() => {
@@ -1517,6 +1537,15 @@ const AppContent: React.FC = () => {
                   ))}
                 </div>
 
+                {/* Sort and Publisher Filter */}
+                <SortFilterControls
+                  sortBy={longBoxSort}
+                  onSortChange={setLongBoxSort}
+                  publisherFilter={longBoxPublisher}
+                  onPublisherFilterChange={setLongBoxPublisher}
+                  availablePublishers={longBoxPublishers}
+                />
+
                 {/* Meta Count */}
                 <p className="text-[#7C828D] text-sm mb-8">
                   {collectedComics.length === 0
@@ -1579,16 +1608,26 @@ const AppContent: React.FC = () => {
                     <Loader2 className="animate-spin text-[#4FD1C5]" size={32} />
                   </div>
                 ) : searchResults.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {searchResults.map(comic => (
-                      <ComicCard
-                        key={comic.id}
-                        comic={comic}
-                        onClick={() => navigate(`/comic/${comic.id}`)}
-                        onToggleReadState={handleToggleReadState}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <SortFilterControls
+                      sortBy={searchSort}
+                      onSortChange={setSearchSort}
+                      publisherFilter={searchPublisher}
+                      onPublisherFilterChange={setSearchPublisher}
+                      availablePublishers={searchPublishers}
+                    />
+                    <p className="text-[#7C828D] text-sm mb-4">{filteredSearchResults.length} results</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      {filteredSearchResults.map(comic => (
+                        <ComicCard
+                          key={comic.id}
+                          comic={comic}
+                          onClick={() => navigate(`/comic/${comic.id}`)}
+                          onToggleReadState={handleToggleReadState}
+                        />
+                      ))}
+                    </div>
+                  </>
                 ) : searchQuery && !isSearching ? (
                   /* No Results */
                   <div className="py-16 space-y-4">

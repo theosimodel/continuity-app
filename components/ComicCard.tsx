@@ -126,6 +126,9 @@ const ComicCard: React.FC<ComicCardProps> = ({ comic, onClick, onToggleReadState
         <div className="mt-2">
           <h3 className="text-white font-medium text-sm truncate group-hover:text-[#4FD1C5] transition-colors">{comic.title}</h3>
           <p className="text-[10px] font-bold text-[#7C828D] tracking-wider">{comic.year}</p>
+          {comic.publisher && (
+            <p className="text-[10px] text-[#7C828D]/70 truncate">{comic.publisher}</p>
+          )}
         </div>
       )}
     </div>
