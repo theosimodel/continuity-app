@@ -34,7 +34,7 @@ export const searchComics = async (query: string): Promise<Comic[]> => {
   try {
     // Use a CORS proxy for browser requests
     const proxyUrl = 'https://corsproxy.io/?';
-    const searchUrl = `${BASE_URL}/search/?api_key=${API_KEY}&format=json&resources=issue&query=${encodeURIComponent(query)}&limit=12`;
+    const searchUrl = `${BASE_URL}/search/?api_key=${API_KEY}&format=json&resources=issue&query=${encodeURIComponent(query)}&limit=30`;
 
     const response = await fetch(proxyUrl + encodeURIComponent(searchUrl));
 

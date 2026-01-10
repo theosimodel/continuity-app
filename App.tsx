@@ -1202,6 +1202,12 @@ const AppContent: React.FC = () => {
       const picks = await fetchCuratedPicks('starter');
       if (picks.length > 0) {
         setStarterPicks(picks);
+      } else {
+        // Fallback: ensure STARTER_PICKS exist in database so they can be tracked
+        for (const comic of STARTER_PICKS) {
+          await ensureComicExists(comic);
+        }
+        setStarterPicks(STARTER_PICKS);
       }
     };
     loadCuratedPicks();

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Continuity - Comic Editor</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -380,6 +381,83 @@
             color: #7C828D;
             font-size: 0.75rem;
         }
+        /* Excel Import Styles */
+        .import-section {
+            background: #161A21;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #1E232B;
+            margin-bottom: 1.5rem;
+        }
+        .import-section h3 {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        .file-input-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .file-input-wrapper input[type="file"] {
+            flex: 1;
+        }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+        .preview-table th {
+            background: #1E232B;
+            color: #fff;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+        }
+        .preview-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #1E232B;
+            color: #B3B8C2;
+        }
+        .preview-table tr:hover td {
+            background: rgba(79, 209, 197, 0.05);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #1E232B;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #4FD1C5;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .import-stats {
+            display: flex;
+            gap: 2rem;
+            margin: 1rem 0;
+        }
+        .import-stat {
+            text-align: center;
+        }
+        .import-stat .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        .import-stat .label {
+            font-size: 0.75rem;
+            color: #7C828D;
+            text-transform: uppercase;
+        }
+        .import-stat.success .number { color: #4FD1C5; }
+        .import-stat.error .number { color: #EF4444; }
+        .import-stat.skipped .number { color: #F59E0B; }
     </style>
 </head>
 <body>
@@ -413,6 +491,7 @@
         <div class="tabs">
             <button class="tab" onclick="switchTab('picks')">Picks (4)</button>
             <button class="tab active" onclick="switchTab('search')">Search ComicVine</button>
+            <button class="tab" onclick="switchTab('import')">Import Excel</button>
             <button class="tab" onclick="switchTab('database')">Database (<span id="comic-count">0</span>)</button>
         </div>
 
@@ -452,6 +531,78 @@
 
             <div id="search-results" class="comics-list search-results">
                 <div class="empty">Enter a search term to find comics on ComicVine</div>
+            </div>
+        </div>
+
+        <!-- Import Excel Tab -->
+        <div id="tab-import" class="tab-content">
+            <div class="import-section">
+                <h3>Import from Excel</h3>
+                <p class="stats">Upload an Excel file from your ComicVine Ingester tool to bulk import comics</p>
+
+                <div class="file-input-wrapper">
+                    <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
+                    <button onclick="clearImport()" class="btn-secondary">Clear</button>
+                </div>
+
+                <div id="import-preview" style="display:none;">
+                    <div class="import-stats">
+                        <div class="import-stat">
+                            <div class="number" id="total-count">0</div>
+                            <div class="label">Total Rows</div>
+                        </div>
+                        <div class="import-stat">
+                            <div class="number" id="new-count">0</div>
+                            <div class="label">New Comics</div>
+                        </div>
+                        <div class="import-stat skipped">
+                            <div class="number" id="existing-count">0</div>
+                            <div class="label">Already Exist</div>
+                        </div>
+                    </div>
+
+                    <h4 style="color:#fff; margin: 1rem 0 0.5rem;">Preview (first 10 rows)</h4>
+                    <div style="overflow-x: auto;">
+                        <table class="preview-table" id="preview-table">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="actions" style="margin-top: 1.5rem;">
+                        <button onclick="importAllComics()" id="import-btn">Import All New Comics</button>
+                    </div>
+                </div>
+
+                <div id="import-progress" style="display:none;">
+                    <p style="color:#fff; margin-bottom: 0.5rem;">Importing comics...</p>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-text" style="color:#7C828D; font-size: 0.875rem;">0 / 0</p>
+                </div>
+
+                <div id="import-results" style="display:none;">
+                    <h4 style="color:#fff; margin: 1rem 0;">Import Complete</h4>
+                    <div class="import-stats">
+                        <div class="import-stat success">
+                            <div class="number" id="success-count">0</div>
+                            <div class="label">Imported</div>
+                        </div>
+                        <div class="import-stat error">
+                            <div class="number" id="error-count">0</div>
+                            <div class="label">Errors</div>
+                        </div>
+                        <div class="import-stat skipped">
+                            <div class="number" id="skip-count">0</div>
+                            <div class="label">Skipped</div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button onclick="clearImport()" class="btn-secondary">Import Another File</button>
+                        <button onclick="switchTab('database')">View Database</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -952,6 +1103,201 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ==================== EXCEL IMPORT ====================
+
+        let parsedComics = [];
+        let comicsToImport = [];
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+
+                if (rows.length === 0) {
+                    showStatus('No data found in Excel file', 'error');
+                    return;
+                }
+
+                // Map Excel rows to comic objects
+                parsedComics = rows.map(row => mapExcelRowToComic(row)).filter(c => c !== null);
+
+                // Check which comics already exist
+                const existingIds = new Set(allComics.map(c => c.id));
+                comicsToImport = parsedComics.filter(c => !existingIds.has(c.id));
+                const existingComics = parsedComics.filter(c => existingIds.has(c.id));
+
+                // Update stats
+                document.getElementById('total-count').textContent = parsedComics.length;
+                document.getElementById('new-count').textContent = comicsToImport.length;
+                document.getElementById('existing-count').textContent = existingComics.length;
+
+                // Render preview table
+                renderPreviewTable(parsedComics.slice(0, 10), existingIds);
+
+                // Show preview
+                document.getElementById('import-preview').style.display = 'block';
+                document.getElementById('import-progress').style.display = 'none';
+                document.getElementById('import-results').style.display = 'none';
+
+                // Update import button
+                document.getElementById('import-btn').textContent = `Import ${comicsToImport.length} New Comics`;
+                document.getElementById('import-btn').disabled = comicsToImport.length === 0;
+
+                showStatus(`Loaded ${parsedComics.length} comics from Excel`, 'success');
+
+            } catch (error) {
+                showStatus(`Failed to parse Excel file: ${error.message}`, 'error');
+            }
+        }
+
+        function mapExcelRowToComic(row) {
+            // Try to find ComicVine ID in various column names
+            const cvId = row['ComicVine ID'] || row['comicvine_id'] || row['cv_id'] || row['ID'];
+            if (!cvId) return null;
+
+            // Build title from Series + Issue # or use Title column
+            let title = row['Title'] || row['title'];
+            if (!title) {
+                const series = row['Series'] || row['series'] || row['Volume'] || '';
+                const issueNum = row['Issue #'] || row['Issue'] || row['issue_number'] || '';
+                title = series + (issueNum ? ` #${issueNum}` : '');
+            }
+            if (!title) return null;
+
+            // Extract year from Cover Date
+            let year = row['Year'] || row['year'];
+            if (!year) {
+                const coverDate = row['Cover Date'] || row['cover_date'] || '';
+                if (coverDate) {
+                    const match = coverDate.toString().match(/(\d{4})/);
+                    year = match ? parseInt(match[1]) : null;
+                }
+            }
+
+            // Get writer (first one if comma-separated)
+            let writer = row['Writers'] || row['Writer'] || row['writer'] || '';
+            if (writer && writer.includes(',')) {
+                writer = writer.split(',')[0].trim();
+            }
+
+            // Get artist (first one if comma-separated)
+            let artist = row['Artists'] || row['Artist'] || row['artist'] || '';
+            if (artist && artist.includes(',')) {
+                artist = artist.split(',')[0].trim();
+            }
+
+            return {
+                id: `cv-${cvId}`,
+                title: title.trim(),
+                writer: writer.trim() || null,
+                artist: artist.trim() || null,
+                year: year ? parseInt(year) : null,
+                cover_url: row['Cover Image URL'] || row['cover_url'] || row['Cover URL'] || null,
+                description: row['Description'] || row['description'] || null,
+                publisher: row['Publisher'] || row['publisher'] || null
+            };
+        }
+
+        function renderPreviewTable(comics, existingIds) {
+            const thead = document.querySelector('#preview-table thead');
+            const tbody = document.querySelector('#preview-table tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Status</th>
+                    <th>Title</th>
+                    <th>Year</th>
+                    <th>Writer</th>
+                    <th>Artist</th>
+                </tr>
+            `;
+
+            tbody.innerHTML = comics.map(comic => {
+                const exists = existingIds.has(comic.id);
+                return `
+                    <tr>
+                        <td>${exists
+                            ? '<span class="result-badge in-db-badge">Exists</span>'
+                            : '<span class="result-badge">New</span>'}</td>
+                        <td>${escapeHtml(comic.title)}</td>
+                        <td>${comic.year || '-'}</td>
+                        <td>${escapeHtml(comic.writer) || '-'}</td>
+                        <td>${escapeHtml(comic.artist) || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function importAllComics() {
+            if (comicsToImport.length === 0) {
+                showStatus('No new comics to import', 'error');
+                return;
+            }
+
+            document.getElementById('import-preview').style.display = 'none';
+            document.getElementById('import-progress').style.display = 'block';
+            document.getElementById('import-results').style.display = 'none';
+
+            let successCount = 0;
+            let errorCount = 0;
+            const total = comicsToImport.length;
+
+            for (let i = 0; i < comicsToImport.length; i++) {
+                const comic = comicsToImport[i];
+
+                try {
+                    const { error } = await db
+                        .from('comics')
+                        .upsert(comic, { onConflict: 'id' });
+
+                    if (error) {
+                        console.error(`Failed to import ${comic.title}:`, error);
+                        errorCount++;
+                    } else {
+                        successCount++;
+                        allComics.push(comic);
+                    }
+                } catch (err) {
+                    console.error(`Error importing ${comic.title}:`, err);
+                    errorCount++;
+                }
+
+                // Update progress
+                const progress = ((i + 1) / total) * 100;
+                document.getElementById('progress-fill').style.width = `${progress}%`;
+                document.getElementById('progress-text').textContent = `${i + 1} / ${total}`;
+            }
+
+            // Update comic count
+            document.getElementById('comic-count').textContent = allComics.length;
+
+            // Show results
+            document.getElementById('import-progress').style.display = 'none';
+            document.getElementById('import-results').style.display = 'block';
+            document.getElementById('success-count').textContent = successCount;
+            document.getElementById('error-count').textContent = errorCount;
+            document.getElementById('skip-count').textContent = parsedComics.length - comicsToImport.length;
+
+            renderComics(allComics);
+            showStatus(`Import complete: ${successCount} added, ${errorCount} errors`, successCount > 0 ? 'success' : 'error');
+        }
+
+        function clearImport() {
+            document.getElementById('excel-file').value = '';
+            document.getElementById('import-preview').style.display = 'none';
+            document.getElementById('import-progress').style.display = 'none';
+            document.getElementById('import-results').style.display = 'none';
+            document.getElementById('progress-fill').style.width = '0%';
+            parsedComics = [];
+            comicsToImport = [];
         }
     </script>
 </body>
