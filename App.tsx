@@ -78,24 +78,24 @@ const Home: React.FC<{
         </section>
       )}
 
-      <section className="relative h-[400px] rounded-2xl overflow-hidden group">
+      <section className="relative h-[320px] md:h-[400px] rounded-2xl overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent z-10" />
         <img
           src="https://wallpapercave.com/wp/wp13746630.jpg"
           alt="Comic book collection background"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
         />
-        <div className="absolute inset-0 z-20 flex flex-col justify-center p-12 max-w-2xl">
-          <div className="flex items-center gap-2 text-[#4FD1C5] mb-4">
-            <TrendingUp size={20} />
-            <span className="text-xs font-bold tracking-widest uppercase">Featured</span>
+        <div className="absolute inset-0 z-20 flex flex-col justify-center p-6 md:p-12 max-w-2xl">
+          <div className="flex items-center gap-2 text-[#4FD1C5] mb-2 md:mb-4">
+            <TrendingUp size={16} className="md:w-5 md:h-5" />
+            <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase">Featured</span>
           </div>
-          <h2 className="text-7xl font-space font-bold text-white mb-4 leading-tight">BEYOND THE PANEL</h2>
-          <p className="text-[#B3B8C2] text-lg mb-8 line-clamp-2">Track what you're reading, build your collection, and discover new universes.</p>
+          <h2 className="text-4xl md:text-7xl font-space font-bold text-white mb-2 md:mb-4 leading-tight">BEYOND THE PANEL</h2>
+          <p className="text-[#B3B8C2] text-sm md:text-lg mb-4 md:mb-8 line-clamp-2">Track what you're reading, build your collection, and discover new universes.</p>
           <div className="flex gap-4">
             <button
               onClick={onStartContinuity}
-              className="bg-white text-black font-bold px-8 py-3 rounded hover:bg-[#4FD1C5] transition-colors"
+              className="bg-white text-black font-bold px-6 md:px-8 py-2 md:py-3 text-sm md:text-base rounded hover:bg-[#4FD1C5] transition-colors"
             >
               Start your Continuity
             </button>
@@ -1952,7 +1952,10 @@ const AppContent: React.FC = () => {
         </Routes>
       </main>
 
-      <Footer />
+      {/* Hide footer on mobile since we have bottom nav */}
+      <div className="hidden md:block">
+        <Footer />
+      </div>
 
       <AuthModal
         isOpen={showAuthModal}
