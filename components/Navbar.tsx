@@ -36,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage, userSigil }) =>
     { id: 'long-boxes', label: 'Boxes', icon: Bookmark },
     { id: 'continuity', label: 'Log', icon: BookOpen },
     { id: 'archivist', label: 'AI', icon: Sparkles },
-    { id: 'search', label: 'Search', icon: Search },
+    { id: 'identity', label: userSigil ? 'You' : 'Sign In', icon: UserSigilIcon },
   ];
 
   return (
@@ -100,20 +100,26 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage, userSigil }) =>
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#161A21] border-t border-[#1E232B] z-50 pb-safe">
         <div className="flex items-center justify-around py-2">
-          {mobileNavItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-1 transition-colors ${
-                activePage === item.id
-                  ? 'text-[#4FD1C5]'
-                  : 'text-[#7C828D] active:text-[#4FD1C5]'
-              }`}
-            >
-              <item.icon size={20} />
-              <span className="text-[9px] font-medium tracking-wide">{item.label}</span>
-            </button>
-          ))}
+          {mobileNavItems.map((item) => {
+            // Identity icon is always teal when signed in
+            const isSignedInIdentity = item.id === 'identity' && userSigil;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={`flex flex-col items-center gap-1 px-3 py-1 transition-colors ${
+                  isSignedInIdentity
+                    ? 'text-[#4FD1C5]'
+                    : activePage === item.id
+                    ? 'text-[#4FD1C5]'
+                    : 'text-[#7C828D] active:text-[#4FD1C5]'
+                }`}
+              >
+                <item.icon size={20} />
+                <span className="text-[9px] font-medium tracking-wide">{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </nav>
     </>
