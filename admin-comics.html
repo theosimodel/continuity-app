@@ -899,6 +899,10 @@
                                             <label>Publisher</label>
                                             <input type="text" id="cv-publisher-${issue.id}" value="" placeholder="Marvel, DC, Image...">
                                         </div>
+                                        <div class="field-group">
+                                            <label>Volume</label>
+                                            <input type="text" id="cv-volume-${issue.id}" value="" placeholder="Vol. 1, Vol. 2...">
+                                        </div>
                                         <div class="field-group full-width">
                                             <label>Cover URL</label>
                                             <input type="text" id="cv-cover-${issue.id}" value="${escapeHtml(issue.image?.medium_url || '')}" placeholder="https://...">
@@ -929,6 +933,7 @@
             const writer = document.getElementById(`cv-writer-${cvId}`).value.trim();
             const artist = document.getElementById(`cv-artist-${cvId}`).value.trim();
             const publisher = document.getElementById(`cv-publisher-${cvId}`).value.trim();
+            const volume = document.getElementById(`cv-volume-${cvId}`).value.trim();
             const description = document.getElementById(`cv-desc-${cvId}`).value.trim();
 
             const id = `cv-${cvId}`;
@@ -944,7 +949,8 @@
                         writer: writer || null,
                         artist: artist || null,
                         description: description || null,
-                        publisher: publisher || null
+                        publisher: publisher || null,
+                        volume: volume || null
                     });
 
                 if (error) throw error;
@@ -957,7 +963,8 @@
                     writer,
                     artist,
                     description,
-                    publisher: publisher || null
+                    publisher: publisher || null,
+                    volume: volume || null
                 };
 
                 allComics.push(newComic);
@@ -1034,6 +1041,10 @@
                                 <label>Publisher</label>
                                 <input type="text" id="publisher-${comic.id}" value="${escapeHtml(comic.publisher || '')}" placeholder="Marvel, DC, Image...">
                             </div>
+                            <div class="field-group">
+                                <label>Volume</label>
+                                <input type="text" id="volume-${comic.id}" value="${escapeHtml(comic.volume || '')}" placeholder="Vol. 1, Vol. 2...">
+                            </div>
                             <div class="field-group full-width">
                                 <label>Cover URL</label>
                                 <input type="text" id="cover-${comic.id}" value="${escapeHtml(comic.cover_url || '')}" placeholder="https://...">
@@ -1057,6 +1068,7 @@
             const writer = document.getElementById(`writer-${id}`).value.trim();
             const artist = document.getElementById(`artist-${id}`).value.trim();
             const publisher = document.getElementById(`publisher-${id}`).value.trim();
+            const volume = document.getElementById(`volume-${id}`).value.trim();
             const coverUrl = document.getElementById(`cover-${id}`).value.trim();
             const description = document.getElementById(`description-${id}`).value.trim();
 
@@ -1068,6 +1080,7 @@
                         writer: writer || null,
                         artist: artist || null,
                         publisher: publisher || null,
+                        volume: volume || null,
                         cover_url: coverUrl || null,
                         description: description || null
                     })
@@ -1081,6 +1094,7 @@
                     comic.writer = writer;
                     comic.artist = artist;
                     comic.publisher = publisher;
+                    comic.volume = volume;
                     comic.cover_url = coverUrl;
                     comic.description = description;
                 }
@@ -1214,7 +1228,8 @@
                 year: year ? parseInt(year) : null,
                 cover_url: row['Cover Image URL'] || row['cover_url'] || row['Cover URL'] || null,
                 description: row['Description'] || row['description'] || null,
-                publisher: row['Publisher'] || row['publisher'] || null
+                publisher: row['Publisher'] || row['publisher'] || null,
+                volume: row['Volume'] || row['volume'] || null
             };
         }
 

@@ -14,6 +14,7 @@ import ResetPassword from './components/ResetPassword';
 import ComicDetailV2 from './components/ComicDetailV2';
 import ArchivistPage from './components/ArchivistPage';
 import SortFilterControls, { SortOption, sortComics, filterByPublisher, getUniquePublishers } from './components/SortFilterControls';
+import ScrollToTop from './components/ScrollToTop';
 import { INITIAL_COMICS, STARTER_PICKS } from './constants';
 import { Comic, UserProfile, Review, ReadState, List, ListItem, ListVisibility } from './types';
 import { getComicRecommendations } from './services/geminiService';
@@ -1979,6 +1980,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <HashRouter>
+      <ScrollToTop />
       <AppContent />
     </HashRouter>
   );

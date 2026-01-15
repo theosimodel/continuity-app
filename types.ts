@@ -28,6 +28,7 @@ export interface Comic {
   writer: string;
   artist: string;
   publisher: string;
+  volume?: string;
   year: number;
   description: string;
   coverUrl: string;

@@ -222,6 +222,7 @@ export const upsertComic = async (comic: Comic): Promise<Comic | null> => {
       writer: comic.writer,
       artist: comic.artist,
       publisher: comic.publisher,
+      volume: comic.volume,
       year: comic.year,
       description: comic.description,
       cover_url: comic.coverUrl,
@@ -276,6 +277,7 @@ export const ensureComicExists = async (comic: Comic): Promise<void> => {
       writer: comic.writer,
       artist: comic.artist,
       publisher: comic.publisher,
+      volume: comic.volume,
       year: comic.year,
       description: comic.description,
       cover_url: comic.coverUrl,
@@ -414,6 +416,7 @@ interface DbComic {
   writer: string;
   artist: string;
   publisher: string;
+  volume?: string;
   year: number;
   description: string;
   cover_url: string;
@@ -434,6 +437,7 @@ const mapDbToComic = (row: DbComic): Comic => ({
   writer: row.writer,
   artist: row.artist,
   publisher: row.publisher,
+  volume: row.volume,
   year: row.year,
   description: row.description,
   coverUrl: row.cover_url,

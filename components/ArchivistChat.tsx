@@ -33,6 +33,7 @@ export const ArchivistChat: React.FC<ArchivistChatProps> = ({ comics, className 
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Load or create conversation on mount
   useEffect(() => {
@@ -43,7 +44,16 @@ export const ArchivistChat: React.FC<ArchivistChatProps> = ({ comics, className 
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const scrollToBottom = () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+    };
+    // Immediate scroll
+    scrollToBottom();
+    // Delayed scroll to handle any layout shifts
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const handleSend = async () => {
@@ -137,7 +147,7 @@ export const ArchivistChat: React.FC<ArchivistChatProps> = ({ comics, className 
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0B0F14]">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0B0F14]">
         {messages.length === 0 && (
           <div className="text-center text-white/70 mt-8">
             <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#8B5CF6]" />
