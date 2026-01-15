@@ -136,8 +136,8 @@ export const ArchivistChat: React.FC<ArchivistChatProps> = ({ comics, className 
   return (
     <div className={`flex flex-col h-full ${className}`}>
       {/* Header */}
-      <div className="border-b border-white/[0.08] p-4 bg-[#0F141C]">
-        <div className="flex items-center gap-2">
+      <div className="border-b border-white/[0.08] p-4 bg-[#0F141C] text-center">
+        <div className="flex items-center justify-center gap-2">
           <Sparkles className="w-5 h-5 text-[#8B5CF6]" />
           <h2 className="text-xl font-bold text-white/[0.92]">The Archivist</h2>
         </div>
@@ -253,13 +253,13 @@ export const ArchivistChat: React.FC<ArchivistChatProps> = ({ comics, className 
         </div>
 
         {/* Quick Action Chips */}
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 mt-3">
           {quickChips.map((chip) => (
             <button
               key={chip.label}
               onClick={() => setInput(chip.query)}
               disabled={isLoading}
-              className="text-xs px-3 py-1.5 rounded-sm bg-[#67D8C6] text-[#0B0F14] font-medium hover:bg-[#53C8B6] transition-all disabled:opacity-50"
+              className="text-xs px-3 py-1.5 rounded-sm bg-[#67D8C6] text-[#0B0F14] font-medium hover:bg-[#53C8B6] transition-all disabled:opacity-50 text-center"
             >
               {chip.label}
             </button>
