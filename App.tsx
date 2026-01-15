@@ -1484,7 +1484,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0E1116] flex flex-col">
+    <div className="min-h-screen bg-[#0E1116] flex flex-col overflow-x-hidden">
       <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
 
       <main className="max-w-6xl mx-auto px-4 pt-8 pb-20 md:pb-0 flex-1 w-full">
@@ -1704,9 +1704,9 @@ const AppContent: React.FC = () => {
               {user ? (
                 <>
                   {/* Reader Header - Logged In */}
-                  <header className="flex items-start gap-8">
+                  <header className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-8">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-24 h-24 rounded-full border-2 border-[#1E232B] bg-[#161A21] flex items-center justify-center">
+                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-[#1E232B] bg-[#161A21] flex items-center justify-center">
                         {isEditingProfile
                           ? renderSigil(editAvatarUrl || 'sigil:book', 40)
                           : renderSigil(profile?.avatar_url || 'sigil:book', 40)
@@ -1777,8 +1777,8 @@ const AppContent: React.FC = () => {
                         </div>
                       ) : (
                         <>
-                          <h2 className="text-4xl font-space text-white tracking-wider mb-2">{profile?.username || 'Reader'}</h2>
-                          <p className="text-[#7C828D] text-sm font-light italic">
+                          <h2 className="text-2xl md:text-4xl font-space text-white tracking-wider mb-2 text-center md:text-left">{profile?.username || 'Reader'}</h2>
+                          <p className="text-[#7C828D] text-sm font-light italic text-center md:text-left">
                             {profile?.bio || "This is your reader record — shaped by what you've read, kept, and revisited."}
                           </p>
                         </>
