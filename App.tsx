@@ -1487,7 +1487,7 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-[#0E1116] flex flex-col">
       <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
 
-      <main className="max-w-6xl mx-auto px-4 pt-8 flex-1 w-full">
+      <main className="max-w-6xl mx-auto px-4 pt-8 pb-20 md:pb-0 flex-1 w-full">
         <Routes>
           <Route path="/welcome" element={<LandingPage onStart={() => {
             if (!user) {
