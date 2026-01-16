@@ -6,7 +6,7 @@ import { aiEnrichmentService } from '../services/aiEnrichmentService';
 import SignificanceBadge, { getFirstAppearancesText } from './SignificanceBadge';
 import {
   Star, Share2, Calendar, Book, Check, X, Pencil, Plus, List as ListIcon,
-  Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff
+  Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff, RefreshCw
 } from 'lucide-react';
 
 interface ComicDetailV2Props {
@@ -324,6 +324,14 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
                 <div className="flex items-center gap-3">
                   <Sparkles className="text-[#4FD1C5]" size={20} />
                   <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">AI Insights</h3>
+                  <button
+                    onClick={handleEnrich}
+                    disabled={isEnriching}
+                    className="text-[#7C828D] hover:text-[#4FD1C5] transition-colors disabled:opacity-50"
+                    title="Regenerate insights"
+                  >
+                    <RefreshCw size={14} className={isEnriching ? 'animate-spin' : ''} />
+                  </button>
                 </div>
                 <SignificanceBadge enrichment={comic.aiEnrichment} />
               </div>
