@@ -56,7 +56,7 @@ IMPORTANT RULES:
 6. Only mark canSkip if it's clearly filler or skippable
 7. If this is a collected edition/trade paperback, analyze the overall story arc
 8. Leave firstAppearances arrays empty if no notable firsts occur
-9. For keyEvents, be DRAMATIC and EVOCATIVE - capture the emotional stakes, shocking moments, and consequences. Describe WHY fans remember this scene. Include character names and vivid imagery. Avoid clinical summaries like "character does X" - instead convey the drama: "The symbiote slowly devours Peter's humanity as he watches helplessly" not "Spider-Man bonds with symbiote". Focus on deaths, betrayals, transformations, sacrifices, and shocking twists that define the story
+9. For keyEvents, write like a passionate fan recounting the story's most gut-wrenching moments. Capture psychological horror, tragic irony, and breaking points. Show the BUILD-UP and CONSEQUENCES, not just actions. BAD: "Spider-Man uses lethal force" GOOD: "The symbiote secretly feeds Peter nightmares, corrupting him while he's oblivious - when Hobgoblin murders Aunt May and the suit prevents Peter from saving her, he finally breaks and becomes Venom." Focus on manipulation, betrayal, sacrifice, loss, and the moment everything changes
 
 Return ONLY the JSON, no additional text or markdown formatting.`;
   }
