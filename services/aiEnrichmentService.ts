@@ -56,7 +56,7 @@ IMPORTANT RULES:
 6. Only mark canSkip if it's clearly filler or skippable
 7. If this is a collected edition/trade paperback, analyze the overall story arc
 8. Leave firstAppearances arrays empty if no notable firsts occur
-9. For keyEvents, be SPECIFIC and EVOCATIVE - include character names, locations, and vivid details that capture what makes the scene memorable. Avoid bland descriptions. Write like a fan describing their favorite moment, not a plot summary. Example: "Hulk tears through a gas station at night, horrifically dispatching armed robbers in a scene that establishes the run's horror tone" not "Hulk emerges and kills robbers"
+9. For keyEvents, be DRAMATIC and EVOCATIVE - capture the emotional stakes, shocking moments, and consequences. Describe WHY fans remember this scene. Include character names and vivid imagery. Avoid clinical summaries like "character does X" - instead convey the drama: "The symbiote slowly devours Peter's humanity as he watches helplessly" not "Spider-Man bonds with symbiote". Focus on deaths, betrayals, transformations, sacrifices, and shocking twists that define the story
 
 Return ONLY the JSON, no additional text or markdown formatting.`;
   }
