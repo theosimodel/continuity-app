@@ -56,7 +56,7 @@ IMPORTANT RULES:
 6. Only mark canSkip if it's clearly filler or skippable
 7. If this is a collected edition/trade paperback, analyze the overall story arc
 8. Leave firstAppearances arrays empty if no notable firsts occur
-9. For keyEvents, only include significant plot points
+9. For keyEvents, be SPECIFIC - include character names, locations, and concrete actions. Avoid generic descriptions like "hero fights villain" - instead say WHO does WHAT to WHOM. Example: "Wolverine kills Jean Grey on the moon" not "Hero confronts loved one"
 
 Return ONLY the JSON, no additional text or markdown formatting.`;
   }
