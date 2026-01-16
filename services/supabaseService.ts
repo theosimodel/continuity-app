@@ -228,6 +228,7 @@ export const upsertComic = async (comic: Comic): Promise<Comic | null> => {
       cover_url: comic.coverUrl,
       where_to_read: comic.whereToRead,
       ai_enrichment: comic.aiEnrichment,
+      curator_notes: comic.curatorNotes,
     })
     .select()
     .single();
@@ -260,6 +261,26 @@ export const saveEnrichment = async (
   return true;
 };
 
+/**
+ * Save curator notes for a comic
+ */
+export const saveCuratorNotes = async (
+  comicId: string,
+  notes: string | null
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('comics')
+    .update({ curator_notes: notes })
+    .eq('id', comicId);
+
+  if (error) {
+    console.error('Error saving curator notes:', error);
+    return false;
+  }
+
+  return true;
+};
+
 // Only insert comic if it doesn't already exist (preserves admin edits)
 export const ensureComicExists = async (comic: Comic): Promise<void> => {
   // Check if comic already exists
@@ -282,6 +303,7 @@ export const ensureComicExists = async (comic: Comic): Promise<void> => {
       description: comic.description,
       cover_url: comic.coverUrl,
       where_to_read: comic.whereToRead,
+      curator_notes: comic.curatorNotes,
     });
   }
 };
@@ -422,6 +444,7 @@ interface DbComic {
   cover_url: string;
   where_to_read?: string;
   ai_enrichment?: AIEnrichment;
+  curator_notes?: string;
 }
 
 interface UserComicData {
@@ -443,6 +466,7 @@ const mapDbToComic = (row: DbComic): Comic => ({
   coverUrl: row.cover_url,
   whereToRead: row.where_to_read,
   aiEnrichment: row.ai_enrichment,
+  curatorNotes: row.curator_notes,
 });
 
 // ============================================

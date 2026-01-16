@@ -911,6 +911,10 @@
                                             <label>Story Brief</label>
                                             <textarea id="cv-desc-${issue.id}" placeholder="Story description...">${escapeHtml(desc)}</textarea>
                                         </div>
+                                        <div class="field-group full-width">
+                                            <label>Curator's Notes</label>
+                                            <textarea id="cv-curator-${issue.id}" placeholder="Manual insights when AI is inaccurate or incomplete..."></textarea>
+                                        </div>
                                     </div>
 
                                     <div class="actions">
@@ -935,6 +939,7 @@
             const publisher = document.getElementById(`cv-publisher-${cvId}`).value.trim();
             const volume = document.getElementById(`cv-volume-${cvId}`).value.trim();
             const description = document.getElementById(`cv-desc-${cvId}`).value.trim();
+            const curatorNotes = document.getElementById(`cv-curator-${cvId}`).value.trim();
 
             const id = `cv-${cvId}`;
 
@@ -950,7 +955,8 @@
                         artist: artist || null,
                         description: description || null,
                         publisher: publisher || null,
-                        volume: volume || null
+                        volume: volume || null,
+                        curator_notes: curatorNotes || null
                     });
 
                 if (error) throw error;
@@ -964,7 +970,8 @@
                     artist,
                     description,
                     publisher: publisher || null,
-                    volume: volume || null
+                    volume: volume || null,
+                    curator_notes: curatorNotes || null
                 };
 
                 allComics.push(newComic);
@@ -1053,6 +1060,10 @@
                                 <label>Story Brief</label>
                                 <textarea id="description-${comic.id}" placeholder="Story description...">${escapeHtml(comic.description || '')}</textarea>
                             </div>
+                            <div class="field-group full-width">
+                                <label>Curator's Notes</label>
+                                <textarea id="curator-${comic.id}" placeholder="Manual insights when AI is inaccurate or incomplete...">${escapeHtml(comic.curator_notes || '')}</textarea>
+                            </div>
                         </div>
 
                         <div class="actions">
@@ -1071,6 +1082,7 @@
             const volume = document.getElementById(`volume-${id}`).value.trim();
             const coverUrl = document.getElementById(`cover-${id}`).value.trim();
             const description = document.getElementById(`description-${id}`).value.trim();
+            const curatorNotes = document.getElementById(`curator-${id}`).value.trim();
 
             try {
                 const { error } = await db
@@ -1082,7 +1094,8 @@
                         publisher: publisher || null,
                         volume: volume || null,
                         cover_url: coverUrl || null,
-                        description: description || null
+                        description: description || null,
+                        curator_notes: curatorNotes || null
                     })
                     .eq('id', id);
 
@@ -1097,6 +1110,7 @@
                     comic.volume = volume;
                     comic.cover_url = coverUrl;
                     comic.description = description;
+                    comic.curator_notes = curatorNotes;
                 }
 
                 showStatus(`Saved changes`, 'success');

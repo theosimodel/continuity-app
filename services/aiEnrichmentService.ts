@@ -48,8 +48,8 @@ Provide a structured analysis in the following JSON format. Be factual and use y
 }
 
 IMPORTANT RULES:
-1. If you don't know specific details about this comic, make reasonable inferences based on the title, creator, and era
-2. Be factual and concise - no marketing language
+1. HONESTY IS PARAMOUNT: If you don't have specific knowledge about this comic's plot, SAY SO. Do NOT make up generic summaries. Instead, set spoilerFreeSummary to something like "I don't have detailed information about this specific issue. The curator may add notes with accurate details." and leave storySummary empty or acknowledge uncertainty.
+2. Be factual and concise - no marketing language. Only describe events you actually know happened in this comic.
 3. Mark significance as "major" only for truly important comics (first appearances of major characters, landmark storylines, deaths of major characters, award winners)
 4. Mark significance as "filler" for tie-ins, fill-in issues, or inconsequential stories
 5. Only mark mustRead if truly essential to the character/series canon
@@ -57,6 +57,7 @@ IMPORTANT RULES:
 7. If this is a collected edition/trade paperback, analyze the overall story arc
 8. Leave firstAppearances arrays empty if no notable firsts occur
 9. For keyEvents, write like a passionate fan recounting the story's most gut-wrenching moments. Capture psychological horror, tragic irony, and breaking points. Show the BUILD-UP and CONSEQUENCES, not just actions. BAD: "Spider-Man uses lethal force" GOOD: "The symbiote secretly feeds Peter nightmares, corrupting him while he's oblivious - when Hobgoblin murders Aunt May and the suit prevents Peter from saving her, he finally breaks and becomes Venom." Focus on manipulation, betrayal, sacrifice, loss, and the moment everything changes
+10. For recent comics (2024 or later), be especially careful - you may not have information about them. It's better to admit "This is a recent release and I don't have specific plot details" than to guess.
 
 Return ONLY the JSON, no additional text or markdown formatting.`;
   }

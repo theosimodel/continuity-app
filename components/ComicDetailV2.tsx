@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Comic, Review, ReadState, List, AIEnrichment } from '../types';
-import { getContinuityCount, fetchComicById, saveEnrichment } from '../services/supabaseService';
+import { getContinuityCount, fetchComicById, saveEnrichment, saveCuratorNotes } from '../services/supabaseService';
 import { aiEnrichmentService } from '../services/aiEnrichmentService';
 import SignificanceBadge, { getFirstAppearancesText } from './SignificanceBadge';
 import {
@@ -55,6 +55,11 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   const [showSpoilers, setShowSpoilers] = useState(false);
   const [enrichmentError, setEnrichmentError] = useState<string | null>(null);
 
+  // Curator notes state
+  const [isEditingCuratorNotes, setIsEditingCuratorNotes] = useState(false);
+  const [curatorNotesText, setCuratorNotesText] = useState('');
+  const [isSavingCuratorNotes, setIsSavingCuratorNotes] = useState(false);
+
   // Fetch comic from Supabase if not found locally
   useEffect(() => {
     if (localComic) {
@@ -77,12 +82,14 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     setRating(comic?.rating || 0);
     setHoverRating(0);
     setNoteText(comic?.review || '');
+    setCuratorNotesText(comic?.curatorNotes || '');
     setShareStatus('idle');
     setShowListMenu(false);
     setNoteSaved(false);
     setShowSpoilers(false);
     setIsEditingNote(false);
-  }, [id, comic?.rating, comic?.review]);
+    setIsEditingCuratorNotes(false);
+  }, [id, comic?.rating, comic?.review, comic?.curatorNotes]);
 
   // Fetch continuity count separately (only on id change)
   useEffect(() => {
@@ -151,6 +158,31 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
       setEnrichmentError('An error occurred. Please try again.');
     } finally {
       setIsEnriching(false);
+    }
+  };
+
+  // Handle saving curator notes
+  const handleSaveCuratorNotes = async () => {
+    if (!comic) return;
+
+    setIsSavingCuratorNotes(true);
+    try {
+      const notes = curatorNotesText.trim() || null;
+      const success = await saveCuratorNotes(comic.id, notes);
+
+      if (success) {
+        const updatedComic = { ...comic, curatorNotes: notes || undefined };
+        onUpdateComic(updatedComic);
+
+        if (fetchedComic) {
+          setFetchedComic(updatedComic);
+        }
+        setIsEditingCuratorNotes(false);
+      }
+    } catch (error) {
+      console.error('Error saving curator notes:', error);
+    } finally {
+      setIsSavingCuratorNotes(false);
     }
   };
 
@@ -315,6 +347,70 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
               </div>
             </div>
           </div>
+
+          {/* Curator's Notes Section */}
+          {(comic.curatorNotes || isEditingCuratorNotes) && (
+            <div className="bg-[#1a1f2a] p-6 rounded-xl border border-[#4FD1C5]/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Pencil className="text-[#4FD1C5]" size={18} />
+                  <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#4FD1C5] uppercase">Curator's Notes</h3>
+                </div>
+                {!isEditingCuratorNotes && (
+                  <button
+                    onClick={() => setIsEditingCuratorNotes(true)}
+                    className="text-[#7C828D] hover:text-[#4FD1C5] transition-colors text-xs"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+
+              {isEditingCuratorNotes ? (
+                <div className="space-y-3">
+                  <textarea
+                    value={curatorNotesText}
+                    onChange={(e) => setCuratorNotesText(e.target.value)}
+                    placeholder="Add your own insights about this comic..."
+                    rows={5}
+                    className="w-full bg-[#0E1116] border border-[#1E232B] rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-[#4FD1C5] resize-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveCuratorNotes}
+                      disabled={isSavingCuratorNotes}
+                      className="bg-[#4FD1C5] text-black font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-[#38B2AC] transition-colors disabled:opacity-50"
+                    >
+                      {isSavingCuratorNotes ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCuratorNotesText(comic.curatorNotes || '');
+                        setIsEditingCuratorNotes(false);
+                      }}
+                      className="bg-[#1E232B] text-white font-bold px-4 py-2 rounded-lg text-sm hover:bg-[#2A303C] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{comic.curatorNotes}</p>
+              )}
+            </div>
+          )}
+
+          {/* Add Curator Notes button (when none exist) */}
+          {!comic.curatorNotes && !isEditingCuratorNotes && (
+            <button
+              onClick={() => setIsEditingCuratorNotes(true)}
+              className="w-full py-3 border border-dashed border-[#1E232B] rounded-xl text-[#7C828D] hover:border-[#4FD1C5] hover:text-[#4FD1C5] transition-colors text-sm flex items-center justify-center gap-2"
+            >
+              <Plus size={16} />
+              Add Curator's Notes
+            </button>
+          )}
 
           {/* AI Enrichment Section */}
           {comic.aiEnrichment ? (

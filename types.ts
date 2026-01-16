@@ -39,6 +39,7 @@ export interface Comic {
   readStates?: ReadState[];
   whereToRead?: string;  // Manual override for Where to Read text
   aiEnrichment?: AIEnrichment;
+  curatorNotes?: string;  // Manual notes that override/supplement AI insights
 }
 
 export interface Review {
