@@ -6,6 +6,7 @@ interface NavbarProps {
   onNavigate: (path: string) => void;
   activePage: string;
   userSigil?: string;
+  hideBottomNav?: boolean;
 }
 
 // Sigil mapping for signed-in state
@@ -18,7 +19,7 @@ const sigilIcons: Record<string, React.FC<{ size?: number; className?: string }>
   'sigil:pen': PenTool,
 };
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage, userSigil }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage, userSigil, hideBottomNav }) => {
   // Get the sigil icon component if user is signed in
   const UserSigilIcon = userSigil ? sigilIcons[userSigil] || User : User;
 
@@ -97,8 +98,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activePage, userSigil }) =>
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#161A21] border-t border-[#1E232B] z-50 pb-safe">
+      {/* Mobile Bottom Navigation - hide when keyboard is open */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 bg-[#161A21] border-t border-[#1E232B] z-50 pb-safe transition-transform duration-200 ${hideBottomNav ? 'translate-y-full' : 'translate-y-0'}`}>
         <div className="flex items-center justify-around py-2">
           {mobileNavItems.map((item) => {
             // Identity icon is always teal when signed in

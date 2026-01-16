@@ -851,6 +851,28 @@ const AppContent: React.FC = () => {
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // Mobile keyboard state - hide bottom nav when input focused
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
+  // Track input focus globally for mobile nav hiding
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        setIsInputFocused(true);
+      }
+    };
+    const handleFocusOut = () => {
+      setIsInputFocused(false);
+    };
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
+
   // Lists state
   const [userLists, setUserLists] = useState<List[]>([]);
   const [listItemCounts, setListItemCounts] = useState<Record<string, number>>({});
@@ -1485,7 +1507,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0E1116] flex flex-col overflow-x-hidden">
-      <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} />
+      <Navbar onNavigate={(path) => navigate(path === 'home' ? '/' : `/${path}`)} activePage={window.location.hash.split('/')[1] || 'home'} userSigil={profile?.avatar_url} hideBottomNav={isInputFocused} />
 
       <main className="max-w-6xl mx-auto px-4 pt-8 pb-20 md:pb-0 flex-1 w-full">
         <Routes>
