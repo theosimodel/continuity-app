@@ -1245,11 +1245,11 @@ const AppContent: React.FC = () => {
     // Save to Supabase
     await upsertComic(updatedComic);
 
-    // Update local state
+    // Update local state with functional updates to avoid stale closures
     const update = (list: Comic[]) => list.map(c => c.id === updatedComic.id ? updatedComic : c);
-    setComics(update(comics));
-    setSearchResults(update(searchResults));
-    setRecommendations(update(recommendations));
+    setComics(prev => update(prev));
+    setSearchResults(prev => update(prev));
+    setRecommendations(prev => update(prev));
   };
 
   const handleToggleReadState = async (comic: Comic, state: ReadState) => {
@@ -1277,10 +1277,11 @@ const AppContent: React.FC = () => {
       c.id === comic.id ? toggleState(c) : c
     );
 
-    setComics(updateList(comics));
-    setSearchResults(updateList(searchResults));
-    setRecommendations(updateList(recommendations));
-    setStarterPicks(updateList(starterPicks));
+    // Use functional updates to avoid stale closure issues
+    setComics(prev => updateList(prev));
+    setSearchResults(prev => updateList(prev));
+    setRecommendations(prev => updateList(prev));
+    setStarterPicks(prev => updateList(prev));
   };
 
   // Add comic to collection (from Archivist recommendations) - always adds state, doesn't toggle
@@ -1318,10 +1319,11 @@ const AppContent: React.FC = () => {
       }
     };
 
-    setComics(updateList(comics));
-    setSearchResults(updateList(searchResults));
-    setRecommendations(updateList(recommendations));
-    setStarterPicks(updateList(starterPicks));
+    // Use functional updates to avoid stale closure issues
+    setComics(prev => updateList(prev));
+    setSearchResults(prev => updateList(prev));
+    setRecommendations(prev => updateList(prev));
+    setStarterPicks(prev => updateList(prev));
   };
 
   const handleLogComic = async (comic: Comic, reviewData: Partial<Review>) => {
