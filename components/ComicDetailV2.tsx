@@ -99,6 +99,7 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     setShowSpoilers(false);
     setIsEditingNote(false);
     setIsEditingCuratorNotes(false);
+    setIsDescriptionExpanded(false);
   }, [id, comic?.rating, comic?.review, comic?.curatorNotes]);
 
   // Fetch continuity count when id changes or read states change
@@ -583,7 +584,15 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
             <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">Story Brief</h3>
             {comic.description ? (
               <>
-                <p className={`text-white text-base leading-relaxed ${!isDescriptionExpanded && comic.description.length > 300 ? 'line-clamp-4' : ''}`}>
+                <p
+                  className="text-white text-base leading-relaxed"
+                  style={!isDescriptionExpanded && comic.description.length > 300 ? {
+                    display: '-webkit-box',
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  } : {}}
+                >
                   {comic.description}
                 </p>
                 {comic.description.length > 300 && (
