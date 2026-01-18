@@ -1529,7 +1529,7 @@ const AppContent: React.FC = () => {
               document.getElementById('starter-picks')?.scrollIntoView({ behavior: 'smooth' });
             }
           }} />} />
-          <Route path="/comic/:id" element={<ComicDetailV2 comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} onSaveRating={handleSaveRating} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} />} />
+          <Route path="/comic/:id" element={<ComicDetailV2 comics={allComicsForDetail} onLog={handleLogComic} onToggleReadState={handleToggleReadState} onUpdateComic={handleUpdateComic} onSaveRating={handleSaveRating} userLists={userLists} onAddToList={handleAddToList} isSignedIn={!!user} onShowCreateList={() => setShowCreateListModal(true)} userId={user?.id} />} />
           <Route path="/list/:id" element={<ListView comics={allComicsForDetail} currentUserId={user?.id} isSignedIn={!!user} onToggleReadState={handleToggleReadState} onStartContinuity={() => !user ? setShowAuthModal(true) : navigate('/')} onEditList={handleEditList} onRemoveFromList={handleRemoveFromList} onListForked={handleListForked} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/archivist" element={<ArchivistPage comics={allComicsForDetail} onAddToCollection={handleAddToCollection} />} />

@@ -731,3 +731,136 @@ export const getContinuityCount = async (comicId: string): Promise<number> => {
 
   return data || 0;
 };
+
+// ============================================
+// PUBLIC REVIEWS
+// ============================================
+
+export interface PublicReview {
+  id: string;
+  user_id: string;
+  comic_id: string;
+  rating: number | null;
+  text: string | null;
+  contains_spoilers: boolean;
+  created_at: string;
+  updated_at: string;
+  username: string;
+  avatar_url: string | null;
+}
+
+export const fetchReviewsForComic = async (comicId: string): Promise<PublicReview[]> => {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(`
+      *,
+      profiles:user_id (username, avatar_url)
+    `)
+    .eq('comic_id', comicId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching reviews:', error);
+    return [];
+  }
+
+  // Flatten the profile data
+  return (data || []).map(review => ({
+    id: review.id,
+    user_id: review.user_id,
+    comic_id: review.comic_id,
+    rating: review.rating,
+    text: review.text,
+    contains_spoilers: review.contains_spoilers,
+    created_at: review.created_at,
+    updated_at: review.updated_at,
+    username: review.profiles?.username || 'Anonymous',
+    avatar_url: review.profiles?.avatar_url || null,
+  }));
+};
+
+export const saveReview = async (
+  userId: string,
+  comicId: string,
+  rating: number | null,
+  text: string | null,
+  containsSpoilers: boolean = false
+): Promise<PublicReview | null> => {
+  // Check if review already exists
+  const { data: existing } = await supabase
+    .from('reviews')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('comic_id', comicId)
+    .single();
+
+  if (existing) {
+    // Update existing review
+    const { data, error } = await supabase
+      .from('reviews')
+      .update({
+        rating,
+        text,
+        contains_spoilers: containsSpoilers,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .select(`
+        *,
+        profiles:user_id (username, avatar_url)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error updating review:', error);
+      return null;
+    }
+
+    return {
+      ...data,
+      username: data.profiles?.username || 'Anonymous',
+      avatar_url: data.profiles?.avatar_url || null,
+    };
+  } else {
+    // Insert new review
+    const { data, error } = await supabase
+      .from('reviews')
+      .insert({
+        user_id: userId,
+        comic_id: comicId,
+        rating,
+        text,
+        contains_spoilers: containsSpoilers,
+      })
+      .select(`
+        *,
+        profiles:user_id (username, avatar_url)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error inserting review:', error);
+      return null;
+    }
+
+    return {
+      ...data,
+      username: data.profiles?.username || 'Anonymous',
+      avatar_url: data.profiles?.avatar_url || null,
+    };
+  }
+};
+
+export const deleteReview = async (reviewId: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('reviews')
+    .delete()
+    .eq('id', reviewId);
+
+  if (error) {
+    console.error('Error deleting review:', error);
+    return false;
+  }
+
+  return true;
+};

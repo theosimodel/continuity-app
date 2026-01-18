@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Comic, Review, ReadState, List, AIEnrichment } from '../types';
-import { getContinuityCount, fetchComicById, saveEnrichment, saveCuratorNotes } from '../services/supabaseService';
+import { getContinuityCount, fetchComicById, saveEnrichment, saveCuratorNotes, fetchReviewsForComic, saveReview, PublicReview } from '../services/supabaseService';
 import { aiEnrichmentService } from '../services/aiEnrichmentService';
 import SignificanceBadge, { getFirstAppearancesText } from './SignificanceBadge';
 import {
   Star, Share2, Calendar, Book, Check, X, Pencil, Plus, List as ListIcon,
-  Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff, RefreshCw
+  Loader2, AlertCircle, BookOpen, Bookmark, Heart, Sparkles, Eye, EyeOff, RefreshCw, User, MessageSquare
 } from 'lucide-react';
 
 interface ComicDetailV2Props {
@@ -19,6 +19,7 @@ interface ComicDetailV2Props {
   onAddToList?: (listId: string, comic: Comic) => void;
   isSignedIn?: boolean;
   onShowCreateList?: () => void;
+  userId?: string;
 }
 
 const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
@@ -31,6 +32,7 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   onAddToList,
   isSignedIn,
   onShowCreateList,
+  userId,
 }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -59,6 +61,11 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   const [isEditingCuratorNotes, setIsEditingCuratorNotes] = useState(false);
   const [curatorNotesText, setCuratorNotesText] = useState('');
   const [isSavingCuratorNotes, setIsSavingCuratorNotes] = useState(false);
+
+  // Public reviews state
+  const [publicReviews, setPublicReviews] = useState<PublicReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   // Fetch comic from Supabase if not found locally
   useEffect(() => {
@@ -100,6 +107,17 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     }
   }, [id, readStatesKey]);
 
+  // Fetch public reviews for this comic
+  useEffect(() => {
+    if (id) {
+      setIsLoadingReviews(true);
+      fetchReviewsForComic(id).then(reviews => {
+        setPublicReviews(reviews);
+        setIsLoadingReviews(false);
+      });
+    }
+  }, [id]);
+
   const handleShare = async () => {
     const shareUrl = window.location.href;
     const shareData = { title: comic?.title || 'Comic', url: shareUrl };
@@ -121,9 +139,23 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     }
   };
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (comic) {
+      // Save to user_comics (personal note)
       onLog(comic, { rating, text: noteText });
+
+      // Also save to public reviews if user is signed in
+      if (userId && (noteText || rating)) {
+        const savedReview = await saveReview(userId, comic.id, rating || null, noteText || null, false);
+        if (savedReview) {
+          // Update local reviews list
+          setPublicReviews(prev => {
+            const filtered = prev.filter(r => r.user_id !== userId);
+            return [savedReview, ...filtered];
+          });
+        }
+      }
+
       setNoteSaved(true);
       setIsEditingNote(false);
       setTimeout(() => setNoteSaved(false), 2000);
@@ -687,6 +719,71 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
                   )}
                 </div>
               </>
+            )}
+          </div>
+
+          {/* Public Reviews Section */}
+          <div className="bg-[#161A21] p-6 rounded-xl border border-[#1E232B]">
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare size={18} className="text-[#4FD1C5]" />
+              <h3 className="text-white font-bold">Community Reviews</h3>
+              {publicReviews.length > 0 && (
+                <span className="text-[#7C828D] text-sm">({publicReviews.length})</span>
+              )}
+            </div>
+
+            {isLoadingReviews ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="animate-spin text-[#4FD1C5]" size={24} />
+              </div>
+            ) : publicReviews.length === 0 ? (
+              <p className="text-[#7C828D] text-sm py-4">No reviews yet. Be the first to share your thoughts!</p>
+            ) : (
+              <div className="space-y-4">
+                {(showAllReviews ? publicReviews : publicReviews.slice(0, 3)).map(review => (
+                  <div key={review.id} className="border-b border-[#1E232B] pb-4 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-[#1E232B] flex items-center justify-center overflow-hidden">
+                        {review.avatar_url ? (
+                          <img src={review.avatar_url} alt={review.username} className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={16} className="text-[#7C828D]" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-medium text-sm">{review.username}</p>
+                        <p className="text-[#7C828D] text-xs">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {review.rating && (
+                        <div className="flex items-center gap-1">
+                          <Star size={14} className="text-[#4FD1C5] fill-[#4FD1C5]" />
+                          <span className="text-white font-bold text-sm">{review.rating}</span>
+                        </div>
+                      )}
+                    </div>
+                    {review.text && (
+                      <p className={`text-[#B3B8C2] text-sm leading-relaxed ${review.contains_spoilers ? 'blur-sm hover:blur-none transition-all cursor-pointer' : ''}`}>
+                        {review.contains_spoilers && <span className="text-[#FBBF24] text-xs font-bold mr-2">[SPOILER]</span>}
+                        {review.text}
+                      </p>
+                    )}
+                    {review.user_id === userId && (
+                      <p className="text-[#4FD1C5] text-xs mt-2">Your review</p>
+                    )}
+                  </div>
+                ))}
+
+                {publicReviews.length > 3 && (
+                  <button
+                    onClick={() => setShowAllReviews(!showAllReviews)}
+                    className="text-[#4FD1C5] text-sm hover:underline"
+                  >
+                    {showAllReviews ? 'Show less' : `Show all ${publicReviews.length} reviews`}
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
