@@ -92,11 +92,13 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   }, [id, comic?.rating, comic?.review, comic?.curatorNotes]);
 
   // Fetch continuity count when id changes or read states change
+  // Stringify readStates for reliable comparison since arrays compare by reference
+  const readStatesKey = JSON.stringify(comic?.readStates || []);
   useEffect(() => {
     if (id) {
       getContinuityCount(id).then(count => setContinuityCount(count));
     }
-  }, [id, comic?.readStates]);
+  }, [id, readStatesKey]);
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
