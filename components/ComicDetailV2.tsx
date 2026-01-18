@@ -91,12 +91,12 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
     setIsEditingCuratorNotes(false);
   }, [id, comic?.rating, comic?.review, comic?.curatorNotes]);
 
-  // Fetch continuity count separately (only on id change)
+  // Fetch continuity count when id changes or read states change
   useEffect(() => {
     if (id) {
       getContinuityCount(id).then(count => setContinuityCount(count));
     }
-  }, [id]);
+  }, [id, comic?.readStates]);
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
