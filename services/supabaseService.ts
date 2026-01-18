@@ -720,22 +720,14 @@ export const forkList = async (
  * Excludes 'owned' and 'want' per metrics spec.
  */
 export const getContinuityCount = async (comicId: string): Promise<number> => {
-  // Fetch all user_comics for this comic and count those with 'read' or 'reread'
+  // Use database function to bypass RLS and count all users
   const { data, error } = await supabase
-    .from('user_comics')
-    .select('read_states')
-    .eq('comic_id', comicId);
+    .rpc('get_continuity_count', { p_comic_id: comicId });
 
   if (error) {
     console.error('Error getting continuity count:', error);
     return 0;
   }
 
-  // Count rows where read_states includes 'read' or 'reread'
-  const count = (data || []).filter(row => {
-    const states = row.read_states || [];
-    return states.includes('read') || states.includes('reread');
-  }).length;
-
-  return count;
+  return data || 0;
 };
