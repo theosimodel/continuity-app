@@ -828,7 +828,7 @@ const AppContent: React.FC = () => {
   const [longBoxFilter, setLongBoxFilter] = useState<ReadState | 'all'>('all');
   const [longBoxSort, setLongBoxSort] = useState<SortOption>('title');
   const [longBoxPublisher, setLongBoxPublisher] = useState<string | null>(null);
-  const [searchSort, setSearchSort] = useState<SortOption>('title');
+  const [searchSort, setSearchSort] = useState<SortOption>('year');
   const [searchPublisher, setSearchPublisher] = useState<string | null>(null);
   const [starterPicks, setStarterPicks] = useState<Comic[]>(STARTER_PICKS);
   const [isFirstVisit, setIsFirstVisit] = useState(() => {
