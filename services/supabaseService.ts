@@ -720,17 +720,22 @@ export const forkList = async (
  * Excludes 'owned' and 'want' per metrics spec.
  */
 export const getContinuityCount = async (comicId: string): Promise<number> => {
-  // Use filter with 'ov' (overlaps) operator for array intersection
-  const { count, error } = await supabase
+  // Fetch all user_comics for this comic and count those with 'read' or 'reread'
+  const { data, error } = await supabase
     .from('user_comics')
-    .select('*', { count: 'exact', head: true })
-    .eq('comic_id', comicId)
-    .filter('read_states', 'ov', '{"read","reread"}');
+    .select('read_states')
+    .eq('comic_id', comicId);
 
   if (error) {
     console.error('Error getting continuity count:', error);
     return 0;
   }
 
-  return count || 0;
+  // Count rows where read_states includes 'read' or 'reread'
+  const count = (data || []).filter(row => {
+    const states = row.read_states || [];
+    return states.includes('read') || states.includes('reread');
+  }).length;
+
+  return count;
 };
