@@ -720,11 +720,12 @@ export const forkList = async (
  * Excludes 'owned' and 'want' per metrics spec.
  */
 export const getContinuityCount = async (comicId: string): Promise<number> => {
+  // Use overlaps operator to check if read_states contains 'read' or 'reread'
   const { count, error } = await supabase
     .from('user_comics')
     .select('*', { count: 'exact', head: true })
     .eq('comic_id', comicId)
-    .or('read_states.cs.{read},read_states.cs.{reread}');
+    .overlaps('read_states', ['read', 'reread']);
 
   if (error) {
     console.error('Error getting continuity count:', error);
