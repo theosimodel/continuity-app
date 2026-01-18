@@ -34,7 +34,9 @@ export const searchComics = async (query: string): Promise<Comic[]> => {
   try {
     // Use a CORS proxy for browser requests
     const proxyUrl = 'https://corsproxy.io/?';
-    const searchUrl = `${BASE_URL}/search/?api_key=${API_KEY}&format=json&resources=issue&query=${encodeURIComponent(query)}&limit=30`;
+    // Request specific fields including person_credits for writer/artist data
+    const fieldList = 'id,name,issue_number,volume,image,cover_date,description,person_credits';
+    const searchUrl = `${BASE_URL}/search/?api_key=${API_KEY}&format=json&resources=issue&query=${encodeURIComponent(query)}&limit=30&field_list=${fieldList}`;
 
     const response = await fetch(proxyUrl + encodeURIComponent(searchUrl));
 
@@ -52,14 +54,20 @@ export const searchComics = async (query: string): Promise<Comic[]> => {
       .filter(issue => issue.image?.medium_url)
       .map((issue): Comic => {
         // Extract writer and artist from person_credits
-        const writer = issue.person_credits?.find(p =>
-          p.role.toLowerCase().includes('writer')
-        )?.name || 'Unknown';
+        const credits = issue.person_credits || [];
 
-        const artist = issue.person_credits?.find(p =>
-          p.role.toLowerCase().includes('artist') ||
-          p.role.toLowerCase().includes('penciler')
-        )?.name || 'Unknown';
+        const writerCredit = credits.find(p => {
+          const role = p.role?.toLowerCase() || '';
+          return role.includes('writer') || role.includes('script');
+        });
+        const writer = writerCredit?.name || '';
+
+        const artistCredit = credits.find(p => {
+          const role = p.role?.toLowerCase() || '';
+          return role.includes('artist') || role.includes('penciler') ||
+                 role.includes('penciller') || role.includes('illustrator');
+        });
+        const artist = artistCredit?.name || '';
 
         // Build title from volume name and issue number
         const issueNum = issue.issue_number ? ` #${issue.issue_number}` : '';
@@ -70,9 +78,9 @@ export const searchComics = async (query: string): Promise<Comic[]> => {
           ? parseInt(issue.cover_date.split('-')[0])
           : new Date().getFullYear();
 
-        // Clean description (remove HTML tags)
+        // Clean description (remove HTML tags) - keep full text
         const description = issue.description
-          ? issue.description.replace(/<[^>]*>/g, '').substring(0, 200) + '...'
+          ? issue.description.replace(/<[^>]*>/g, '').trim()
           : `${issue.volume.name} issue ${issue.issue_number || ''}`;
 
         return {

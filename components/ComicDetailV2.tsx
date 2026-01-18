@@ -67,6 +67,9 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
+  // Description expand state
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
   // Fetch comic from Supabase if not found locally
   useEffect(() => {
     if (localComic) {
@@ -578,7 +581,23 @@ const ComicDetailV2: React.FC<ComicDetailV2Props> = ({
           {/* Synopsis */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#7C828D] uppercase">Story Brief</h3>
-            <p className="text-white text-base leading-relaxed">{comic.description || 'No description available.'}</p>
+            {comic.description ? (
+              <>
+                <p className={`text-white text-base leading-relaxed ${!isDescriptionExpanded && comic.description.length > 300 ? 'line-clamp-4' : ''}`}>
+                  {comic.description}
+                </p>
+                {comic.description.length > 300 && (
+                  <button
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    className="text-[#4FD1C5] text-sm hover:underline"
+                  >
+                    {isDescriptionExpanded ? 'Show less' : 'Read more'}
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="text-[#7C828D] text-base leading-relaxed italic">No description available.</p>
+            )}
           </div>
 
           {/* Primary Action - Add to Continuity */}
